@@ -151,9 +151,13 @@ class ResNet(nn.Module):
 
         for m in self.modules():
             if isinstance(m, nn.Conv3d):
+<<<<<<< HEAD
                 nn.init.kaiming_normal_(m.weight,
                                         mode='fan_out',
                                         nonlinearity='relu')
+=======
+                m.weight = nn.init.kaiming_normal(m.weight, mode='fan_out')
+>>>>>>> 4e2195c (fix initialization method)
             elif isinstance(m, nn.BatchNorm3d):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
