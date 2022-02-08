@@ -67,6 +67,8 @@ def get_opt():
         opt.n_input_channels = 2
         opt.mean = opt.mean[:2]
         opt.std = opt.std[:2]
+    elif opt.input_type == 'gray':
+        opt.n_input_channels = 1
 
     if opt.distributed:
         opt.dist_rank = int(os.environ["OMPI_COMM_WORLD_RANK"])
@@ -180,10 +182,10 @@ def get_train_utils(opt, model_parameters):
 
     if opt.is_master_node:
         train_logger = Logger(opt.result_path / 'train.log',
-                              ['epoch', 'loss', 'acc', 'lr'])
+                              ['epoch', 'loss', 'acc', 'precision', 'recall', 'f1', 'lr'])
         train_batch_logger = Logger(
             opt.result_path / 'train_batch.log',
-            ['epoch', 'batch', 'iter', 'loss', 'acc', 'lr'])
+            ['epoch', 'batch', 'iter', 'loss', 'acc', 'precision', 'recall', 'f1', 'lr'])
     else:
         train_logger = None
         train_batch_logger = None
@@ -254,7 +256,7 @@ def get_val_utils(opt):
 
     if opt.is_master_node:
         val_logger = Logger(opt.result_path / 'val.log',
-                            ['epoch', 'loss', 'acc'])
+                            ['epoch', 'loss', 'acc', 'precision', 'recall', 'f1'])
     else:
         val_logger = None
 

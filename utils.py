@@ -63,11 +63,24 @@ def calculate_accuracy(outputs, targets):
 def calculate_precision_and_recall(outputs, targets, pos_label=1):
     with torch.no_grad():
         _, pred = outputs.topk(1, 1, largest=True, sorted=True)
-        precision, recall, _, _ = precision_recall_fscore_support(
+        precision, recall, f1, _ = precision_recall_fscore_support(
             targets.view(-1, 1).cpu().numpy(),
             pred.cpu().numpy())
 
-        return precision[pos_label], recall[pos_label]
+        return precision[pos_label], recall[pos_label], f1[pos_label]
+
+
+def calculate_precision_and_recall_binary(outputs, targets, pos_label=1):
+    with torch.no_grad():
+        _, pred = outputs.topk(1, 1, largest=True, sorted=True)
+        precision, recall, f1, _ = precision_recall_fscore_support(
+            targets.view(-1, 1).cpu().numpy(),
+            pred.cpu().numpy(),
+            pos_label=pos_label,
+            average='binary',
+            zero_division=0)
+
+        return precision, recall, f1
 
 
 def worker_init_fn(worker_id):

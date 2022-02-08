@@ -1,0 +1,12 @@
+--root_path=/mnt/host/c/Users/Changxin/Documents/datasets/HCM_DATA_Organized
+--video_path=hv_dict_standard_LGE
+--annotation_path=HCM_1.json
+--input_type=gray
+--n_classes=2
+--learning_rate=0.01
+--file_type=pickle
+--result_path=results_debug
+--dataset=HCM
+--model=resnet
+--model_depth=18
+--batch_size=16
