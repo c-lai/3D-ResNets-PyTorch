@@ -1,6 +1,21 @@
 # 3D ResNets for Action Recognition
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+## Update (2020/4/13)
+
+We published a paper on arXiv.
+
+[
+Hirokatsu Kataoka, Tenga Wakamiya, Kensho Hara, and Yutaka Satoh,  
+"Would Mega-scale Datasets Further Enhance Spatiotemporal 3D CNNs",  
+arXiv preprint, arXiv:2004.04968, 2020.
+](https://arxiv.org/abs/2004.04968)
+
+We uploaded the pretrained models described in this paper including ResNet-50 pretrained on the combined dataset with Kinetics-700 and Moments in Time.
+
+>>>>>>> master
 ## Update (2020/4/10)
 
 We significantly updated our scripts. If you want to use older versions to reproduce our CVPR2018 paper, you should use the scripts in the CVPR2018 branch.
@@ -44,6 +59,12 @@ Some minor changes are included.
 ## Summary
 
 This is the PyTorch code for the following papers:
+
+[
+Hirokatsu Kataoka, Tenga Wakamiya, Kensho Hara, and Yutaka Satoh,  
+"Would Mega-scale Datasets Further Enhance Spatiotemporal 3D CNNs",  
+arXiv preprint, arXiv:2004.04968, 2020.
+](https://arxiv.org/abs/2004.04968)
 
 [
 Kensho Hara, Hirokatsu Kataoka, and Yutaka Satoh,  
@@ -110,7 +131,7 @@ r3d200_K_200ep.pth: --model resnet --model_depth 200 --n_pretrain_classes 700
 r3d200_KM_200ep.pth: --model resnet --model_depth 200 --n_pretrain_classes 1039
 ```
 
-Old pretrained models are still available [here](Pre-trained models are available here.).  
+Old pretrained models are still available [here](https://drive.google.com/drive/folders/1zvl89AgFAApbH0At-gMuZSeQB_LpNP-M?usp=sharing).  
 However, some modifications are required to use the old pretrained models in the current scripts.
 
 ## Requirements
