@@ -75,8 +75,13 @@ Proceedings of the International Conference on Pattern Recognition, pp. 2516-252
 [
 Kensho Hara, Hirokatsu Kataoka, and Yutaka Satoh,  
 "Can Spatiotemporal 3D CNNs Retrace the History of 2D CNNs and ImageNet?",  
+<<<<<<< HEAD
 Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition, pp. 6546-6555, 2018.
 ](http://openaccess.thecvf.com/content_cvpr_2018/html/Hara_Can_Spatiotemporal_3D_CVPR_2018_paper.html)
+=======
+arXiv preprint, arXiv:1711.09577, 2017. (accepted to CVPR2018)
+](https://arxiv.org/abs/1711.09577)
+>>>>>>> 3888ac7 (update paper info)
 
 [
 Kensho Hara, Hirokatsu Kataoka, and Yutaka Satoh,  
