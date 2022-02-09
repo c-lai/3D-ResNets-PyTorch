@@ -4,7 +4,8 @@ from functools import partialmethod
 
 import torch
 import numpy as np
-from sklearn.metrics import precision_recall_fscore_support, roc_auc_score
+from sklearn.metrics import precision_recall_fscore_support, \
+    precision_recall_curve, roc_auc_score
 
 
 class AverageMeter(object):
@@ -84,13 +85,22 @@ def calculate_precision_and_recall(outputs, targets, pos_label=1):
 
 def calculate_precision_and_recall_binary(outputs, targets, pos_label=1):
     with torch.no_grad():
-        pred = torch.where(outputs>0.5, 1, 0)
-        precision, recall, f1, _ = precision_recall_fscore_support(
-            targets.view(-1, 1).cpu().numpy(),
-            pred.cpu().numpy(),
-            pos_label=pos_label,
-            average='binary',
-            zero_division=0)
+        precisions, recalls, thresholds = precision_recall_curve(
+            targets.view(-1, 1).cpu().numpy(), 
+            outputs.cpu().numpy(),
+            pos_label=pos_label)
+        f1s = 2*precisions*recalls/(precisions+recalls+0.001)
+        optimal_index = np.argmax(f1s)
+        precision = precisions[optimal_index]
+        recall = recalls[optimal_index]
+        f1 = f1s[optimal_index]
+        # pred = torch.where(outputs>0.5, 1, 0)
+        # precision, recall, f1, _ = precision_recall_fscore_support(
+        #     targets.view(-1, 1).cpu().numpy(),
+        #     pred.cpu().numpy(),
+        #     pos_label=pos_label,
+        #     average='binary',
+        #     zero_division=0)
 
         return precision, recall, f1
 

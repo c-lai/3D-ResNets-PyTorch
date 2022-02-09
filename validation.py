@@ -109,9 +109,9 @@ def val_epoch(epoch,
     if tb_writer is not None:
         tb_writer.add_scalar('val/loss', losses.avg, epoch)
         tb_writer.add_scalar('val/acc', accuracies.avg, epoch)
-        tb_writer.add_scalar('train/precision', precisions.avg, epoch)
-        tb_writer.add_scalar('train/recall', recalls.avg, epoch)
-        tb_writer.add_scalar('train/f1', f1s.avg, epoch)
-        tb_writer.add_scalar('train/auc', aucs.avg, epoch)
+        tb_writer.add_scalar('val/precision', precisions.avg, epoch)
+        tb_writer.add_scalar('val/recall', recalls.avg, epoch)
+        tb_writer.add_scalar('val/f1', f1s.avg, epoch)
+        tb_writer.add_scalar('val/auc', aucs.avg, epoch)
 
     return losses.avg
