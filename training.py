@@ -6,7 +6,8 @@ import sys
 import torch
 import torch.distributed as dist
 
-from utils import AverageMeter, calculate_accuracy, calculate_precision_and_recall_binary
+from utils import AverageMeter, calculate_accuracy, calculate_accuracy_binary, \
+    calculate_precision_and_recall_binary, calculate_auc
 
 
 def train_epoch(epoch,
@@ -31,16 +32,18 @@ def train_epoch(epoch,
     precisions = AverageMeter()
     recalls = AverageMeter()
     f1s = AverageMeter()
+    aucs= AverageMeter()
 
     end_time = time.time()
     for i, (inputs, targets) in enumerate(data_loader):
         data_time.update(time.time() - end_time)
 
-        targets = targets.to(device, non_blocking=True)
+        targets = targets.to(device, non_blocking=True).view(-1, 1).float()
         outputs = model(inputs)
         loss = criterion(outputs, targets)
-        acc = calculate_accuracy(outputs, targets)
+        acc = calculate_accuracy_binary(outputs, targets)
         precision, recall, f1 = calculate_precision_and_recall_binary(outputs, targets)
+        auc = calculate_auc(outputs, targets)
         # f1 = 2*(recall*precision)/(recall+precision+0.0001)
 
         losses.update(loss.item(), inputs.size(0))
@@ -48,6 +51,7 @@ def train_epoch(epoch,
         precisions.update(precision, inputs.size(0))
         recalls.update(recall, inputs.size(0))
         f1s.update(f1, inputs.size(0))
+        aucs.update(auc, inputs.size(0))
 
         optimizer.zero_grad()
         loss.backward()
@@ -66,6 +70,7 @@ def train_epoch(epoch,
                 'precision': precisions.val,
                 'recall': recalls.val,
                 'f1': f1s.val,
+                'auc': aucs.val,
                 'lr': current_lr
             })
 
@@ -76,7 +81,8 @@ def train_epoch(epoch,
               'Acc {acc.val:.3f} ({acc.avg:.3f})\t'
               'Precision {pre.val:.3f} ({pre.avg:.3f})\t'
               'Recall {rec.val:.3f} ({rec.avg:.3f})\t'
-              'F1 {f1.val:.3f} ({f1.avg:.3f})\t'.format(epoch,
+              'F1 {f1.val:.3f} ({f1.avg:.3f})\t'
+              'AUC {auc.val:.3f} ({auc.avg:.3f})\t'.format(epoch,
                                                          i + 1,
                                                          len(data_loader),
                                                          batch_time=batch_time,
@@ -85,7 +91,8 @@ def train_epoch(epoch,
                                                          acc=accuracies,
                                                          pre=precisions,
                                                          rec=recalls,
-                                                         f1=f1s))
+                                                         f1=f1s,
+                                                         auc=aucs))
                                                          
 
     if distributed:
@@ -118,6 +125,7 @@ def train_epoch(epoch,
             'precision': precisions.avg,
             'recall': recalls.avg,
             'f1': f1s.avg,
+            'auc': aucs.avg,
             'lr': current_lr
         })
 
@@ -127,4 +135,5 @@ def train_epoch(epoch,
         tb_writer.add_scalar('train/precision', precisions.avg, epoch)
         tb_writer.add_scalar('train/recall', recalls.avg, epoch)
         tb_writer.add_scalar('train/f1', f1s.avg, epoch)
+        tb_writer.add_scalar('train/auc', aucs.avg, epoch)
         tb_writer.add_scalar('train/lr', current_lr, epoch)

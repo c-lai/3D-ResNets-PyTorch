@@ -4,7 +4,7 @@ from functools import partialmethod
 
 import torch
 import numpy as np
-from sklearn.metrics import precision_recall_fscore_support
+from sklearn.metrics import precision_recall_fscore_support, roc_auc_score
 
 
 class AverageMeter(object):
@@ -60,6 +60,18 @@ def calculate_accuracy(outputs, targets):
         return n_correct_elems / batch_size
 
 
+def calculate_accuracy_binary(outputs, targets):
+    with torch.no_grad():
+        batch_size = targets.size(0)
+
+        pred = torch.where(outputs>0.5, 1, 0)
+        pred = pred.t()
+        correct = pred.eq(targets.view(1, -1))
+        n_correct_elems = correct.float().sum().item()
+
+        return n_correct_elems / batch_size
+
+
 def calculate_precision_and_recall(outputs, targets, pos_label=1):
     with torch.no_grad():
         _, pred = outputs.topk(1, 1, largest=True, sorted=True)
@@ -72,7 +84,7 @@ def calculate_precision_and_recall(outputs, targets, pos_label=1):
 
 def calculate_precision_and_recall_binary(outputs, targets, pos_label=1):
     with torch.no_grad():
-        _, pred = outputs.topk(1, 1, largest=True, sorted=True)
+        pred = torch.where(outputs>0.5, 1, 0)
         precision, recall, f1, _ = precision_recall_fscore_support(
             targets.view(-1, 1).cpu().numpy(),
             pred.cpu().numpy(),
@@ -81,6 +93,15 @@ def calculate_precision_and_recall_binary(outputs, targets, pos_label=1):
             zero_division=0)
 
         return precision, recall, f1
+
+
+def calculate_auc(outputs, targets, pos_label=1):
+    with torch.no_grad():
+        auc = roc_auc_score(
+            targets.view(-1, 1).cpu().numpy(),
+            outputs.cpu().numpy())
+
+        return auc
 
 
 def worker_init_fn(worker_id):

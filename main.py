@@ -5,8 +5,8 @@ import os
 
 import numpy as np
 import torch
-from torch.nn import CrossEntropyLoss
-from torch.optim import SGD, lr_scheduler
+from torch.nn import CrossEntropyLoss, BCELoss
+from torch.optim import SGD, RMSprop, lr_scheduler
 import torch.multiprocessing as mp
 import torch.distributed as dist
 from torch.backends import cudnn
@@ -182,10 +182,10 @@ def get_train_utils(opt, model_parameters):
 
     if opt.is_master_node:
         train_logger = Logger(opt.result_path / 'train.log',
-                              ['epoch', 'loss', 'acc', 'precision', 'recall', 'f1', 'lr'])
+                              ['epoch', 'loss', 'acc', 'precision', 'recall', 'f1', 'auc', 'lr'])
         train_batch_logger = Logger(
             opt.result_path / 'train_batch.log',
-            ['epoch', 'batch', 'iter', 'loss', 'acc', 'precision', 'recall', 'f1', 'lr'])
+            ['epoch', 'batch', 'iter', 'loss', 'acc', 'precision', 'recall', 'f1', 'auc', 'lr'])
     else:
         train_logger = None
         train_batch_logger = None
@@ -194,12 +194,16 @@ def get_train_utils(opt, model_parameters):
         dampening = 0
     else:
         dampening = opt.dampening
-    optimizer = SGD(model_parameters,
-                    lr=opt.learning_rate,
-                    momentum=opt.momentum,
-                    dampening=dampening,
-                    weight_decay=opt.weight_decay,
-                    nesterov=opt.nesterov)
+    # optimizer = SGD(model_parameters,
+    #                 lr=opt.learning_rate,
+    #                 momentum=opt.momentum,
+    #                 dampening=dampening,
+    #                 weight_decay=opt.weight_decay,
+    #                 nesterov=opt.nesterov)
+    optimizer = RMSprop(model_parameters,
+                        lr=opt.learning_rate,
+                        momentum=opt.momentum,
+                        weight_decay=opt.weight_decay)
 
     assert opt.lr_scheduler in ['plateau', 'multistep']
     assert not (opt.lr_scheduler == 'plateau' and opt.no_val)
@@ -256,7 +260,7 @@ def get_val_utils(opt):
 
     if opt.is_master_node:
         val_logger = Logger(opt.result_path / 'val.log',
-                            ['epoch', 'loss', 'acc', 'precision', 'recall', 'f1'])
+                            ['epoch', 'loss', 'acc', 'precision', 'recall', 'f1', 'auc'])
     else:
         val_logger = None
 
@@ -355,7 +359,8 @@ def main_worker(index, opt):
     if opt.is_master_node:
         print(model)
 
-    criterion = CrossEntropyLoss().to(opt.device)
+    # criterion = CrossEntropyLoss().to(opt.device)
+    criterion = BCELoss().to(opt.device)
 
     if not opt.no_train:
         (train_loader, train_sampler, train_logger, train_batch_logger,
