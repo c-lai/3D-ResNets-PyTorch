@@ -5,7 +5,11 @@ import sys
 import torch
 import torch.distributed as dist
 
+<<<<<<< HEAD
 from utils import AverageMeter, calculate_accuracy, calculate_accuracy_binary,\
+=======
+from utils import AverageMeter, calculate_accuracy, \
+>>>>>>> ce1db37a2909e9ed44a5f47fcaa951f47452aacf
     calculate_precision_and_recall_binary, calculate_auc
 
 
