@@ -139,3 +139,17 @@ def partialclass(cls, *args, **kwargs):
         __init__ = partialmethod(cls.__init__, *args, **kwargs)
 
     return PartialClass
+
+
+def select_n_random(dataset, n=50):
+    '''
+    Selects n random datapoints and their corresponding labels from a dataset
+    '''
+    perm = np.random.RandomState(seed=42).permutation(len(dataset))
+    return torch.utils.data.Subset(dataset, perm[:n])
+
+
+def get_activation(activation, name):
+    def hook(module, input, output):
+        activation[name] = output.detach()
+    return hook

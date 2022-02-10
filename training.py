@@ -7,11 +7,13 @@ import torch
 import torch.distributed as dist
 
 from utils import AverageMeter, calculate_accuracy, calculate_accuracy_binary, \
-    calculate_precision_and_recall_binary, calculate_auc
+    calculate_precision_and_recall_binary, calculate_auc, \
+        get_activation
 
 
 def train_epoch(epoch,
                 data_loader,
+                subset_loader, 
                 model,
                 criterion,
                 optimizer,
@@ -29,29 +31,32 @@ def train_epoch(epoch,
     data_time = AverageMeter()
     losses = AverageMeter()
     accuracies = AverageMeter()
-    precisions = AverageMeter()
-    recalls = AverageMeter()
-    f1s = AverageMeter()
-    aucs= AverageMeter()
+    # precisions = AverageMeter()
+    # recalls = AverageMeter()
+    # f1s = AverageMeter()
+    # aucs= AverageMeter()
 
     end_time = time.time()
+    outputs_list = []
+    targets_list = []
     for i, (inputs, targets) in enumerate(data_loader):
         data_time.update(time.time() - end_time)
 
         targets = targets.to(device, non_blocking=True).view(-1, 1).float()
+        targets_list.append(targets)
         outputs = model(inputs)
+        outputs_list.append(outputs)
         loss = criterion(outputs, targets)
         acc = calculate_accuracy_binary(outputs, targets)
-        precision, recall, f1 = calculate_precision_and_recall_binary(outputs, targets)
-        auc = calculate_auc(outputs, targets)
-        # f1 = 2*(recall*precision)/(recall+precision+0.0001)
+        # precision, recall, f1 = calculate_precision_and_recall_binary(outputs, targets)
+        # auc = calculate_auc(outputs, targets)
 
         losses.update(loss.item(), inputs.size(0))
         accuracies.update(acc, inputs.size(0))
-        precisions.update(precision, inputs.size(0))
-        recalls.update(recall, inputs.size(0))
-        f1s.update(f1, inputs.size(0))
-        aucs.update(auc, inputs.size(0))
+        # precisions.update(precision, inputs.size(0))
+        # recalls.update(recall, inputs.size(0))
+        # f1s.update(f1, inputs.size(0))
+        # aucs.update(auc, inputs.size(0))
 
         optimizer.zero_grad()
         loss.backward()
@@ -67,10 +72,10 @@ def train_epoch(epoch,
                 'iter': (epoch - 1) * len(data_loader) + (i + 1),
                 'loss': losses.val,
                 'acc': accuracies.val,
-                'precision': precisions.val,
-                'recall': recalls.val,
-                'f1': f1s.val,
-                'auc': aucs.val,
+                # 'precision': precisions.val,
+                # 'recall': recalls.val,
+                # 'f1': f1s.val,
+                # 'auc': aucs.val,
                 'lr': current_lr
             })
 
@@ -78,22 +83,25 @@ def train_epoch(epoch,
               'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
               'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
               'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-              'Acc {acc.val:.3f} ({acc.avg:.3f})\t'
-              'Precision {pre.val:.3f} ({pre.avg:.3f})\t'
-              'Recall {rec.val:.3f} ({rec.avg:.3f})\t'
-              'F1 {f1.val:.3f} ({f1.avg:.3f})\t'
-              'AUC {auc.val:.3f} ({auc.avg:.3f})\t'.format(epoch,
+              'Acc {acc.val:.3f} ({acc.avg:.3f})\t'.format(epoch,
+            #   'Precision {pre.val:.3f} ({pre.avg:.3f})\t'
+            #   'Recall {rec.val:.3f} ({rec.avg:.3f})\t'
+            #   'F1 {f1.val:.3f} ({f1.avg:.3f})\t'
+            #   'AUC {auc.val:.3f} ({auc.avg:.3f})\t'.format(epoch,
                                                          i + 1,
                                                          len(data_loader),
                                                          batch_time=batch_time,
                                                          data_time=data_time,
                                                          loss=losses,
-                                                         acc=accuracies,
-                                                         pre=precisions,
-                                                         rec=recalls,
-                                                         f1=f1s,
-                                                         auc=aucs))
-                                                         
+                                                         acc=accuracies))
+                                                        #  pre=precisions,
+                                                        #  rec=recalls,
+                                                        #  f1=f1s,
+                                                        #  auc=aucs))
+    outputs = torch.cat(outputs_list, dim=0)
+    targets = torch.cat(targets_list, dim=0)
+    precision, recall, f1 = calculate_precision_and_recall_binary(outputs, targets)
+    auc = calculate_auc(outputs, targets)
 
     if distributed:
         loss_sum = torch.tensor([losses.sum],
@@ -122,18 +130,35 @@ def train_epoch(epoch,
             'epoch': epoch,
             'loss': losses.avg,
             'acc': accuracies.avg,
-            'precision': precisions.avg,
-            'recall': recalls.avg,
-            'f1': f1s.avg,
-            'auc': aucs.avg,
+            'precision': precision,
+            'recall': recall,
+            'f1': f1,
+            'auc': auc,
             'lr': current_lr
         })
 
     if tb_writer is not None:
         tb_writer.add_scalar('train/loss', losses.avg, epoch)
         tb_writer.add_scalar('train/acc', accuracies.avg, epoch)
-        tb_writer.add_scalar('train/precision', precisions.avg, epoch)
-        tb_writer.add_scalar('train/recall', recalls.avg, epoch)
-        tb_writer.add_scalar('train/f1', f1s.avg, epoch)
-        tb_writer.add_scalar('train/auc', aucs.avg, epoch)
+        tb_writer.add_scalar('train/precision', precision, epoch)
+        tb_writer.add_scalar('train/recall', recall, epoch)
+        tb_writer.add_scalar('train/f1', f1, epoch)
+        tb_writer.add_scalar('train/auc', auc, epoch)
         tb_writer.add_scalar('train/lr', current_lr, epoch)
+
+        latent_vectors_list = []
+        targets_list = []
+        for i, (inputs, targets) in enumerate(subset_loader):
+            activations = {}
+            model.module.fc.register_forward_hook(get_activation(activations, 'fc'))
+            outputs = model(inputs)
+
+            latent_vectors_list.append(activations['fc'])
+            targets_list.append(targets)
+        latent_vectors = torch.cat(latent_vectors_list, dim=0)
+        targets_subset = torch.cat(targets_list, dim=0)
+        # features = latent_vectors.view(-1, 16)
+        tb_writer.add_embedding(latent_vectors,
+                                metadata=targets_subset,
+                                global_step=epoch,
+                                tag='train/latent space')
