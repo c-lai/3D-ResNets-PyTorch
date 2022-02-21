@@ -5,7 +5,7 @@ import os
 
 import numpy as np
 import torch
-from torch.nn import CrossEntropyLoss, BCELoss
+from torch.nn import CrossEntropyLoss, BCELoss, BCEWithLogitsLoss
 from torch.optim import SGD, RMSprop, lr_scheduler
 import torch.multiprocessing as mp
 import torch.distributed as dist
@@ -393,9 +393,6 @@ def main_worker(index, opt):
     if opt.is_master_node:
         print(model)
 
-    # criterion = CrossEntropyLoss().to(opt.device)
-    criterion = BCELoss().to(opt.device)
-
     if not opt.no_train:
         (train_loader, train_sampler, train_logger, train_batch_logger,
          optimizer, scheduler, train_subset_loader) = get_train_utils(opt, parameters)
@@ -416,6 +413,10 @@ def main_worker(index, opt):
                                       purge_step=opt.begin_epoch)
     else:
         tb_writer = None
+    
+    # criterion = CrossEntropyLoss().to(opt.device)
+    # criterion = BCELoss().to(opt.device)
+    criterion = BCEWithLogitsLoss(pos_weight=train_loader.dataset.pos_weight).to(opt.device)
 
     prev_val_loss = None
     for i in range(opt.begin_epoch, opt.n_epochs + 1):

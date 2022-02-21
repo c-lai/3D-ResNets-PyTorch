@@ -89,7 +89,8 @@ class HeartVolumeLoader(object):
             hv_dict = pickle.load(f)
         hv_obj = hc.HeartVolume(**hv_dict)
         px_array = hv_obj.pixel_array
+        myo_mask = hv_obj.segmentation
         for i in range(px_array.shape[2]):
-            hv.append(px_array[:,:,i])
+            hv.append(px_array[:,:,i]*(myo_mask[:,:,i]==4))
 
         return px_array

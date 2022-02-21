@@ -48,7 +48,7 @@ class HeartDataset(data.Dataset):
                  hv_path_formatter=(lambda root_path, label, video_id:
                                        root_path / label / video_id),
                  target_type='label'):
-        self.data, self.class_names = self.__make_dataset(
+        self.data, self.class_names, self.class_sample_num = self.__make_dataset(
             root_path, annotation_path, subset, hv_path_formatter)
 
         self.spatial_transform = spatial_transform
@@ -61,6 +61,7 @@ class HeartDataset(data.Dataset):
             self.loader = hv_loader
 
         self.target_type = target_type
+        self.pos_weight = torch.tensor(self.class_sample_num[0]/self.class_sample_num[1])
 
     def __make_dataset(self, root_path, annotation_path, subset,
                        hv_path_formatter):
@@ -68,10 +69,12 @@ class HeartDataset(data.Dataset):
             data = json.load(f)
         video_ids, video_paths, annotations = get_database(
             data, subset, root_path, hv_path_formatter)
-        class_to_idx = get_class_labels(data) ## needs change!
+        class_to_idx = get_class_labels(data)
         idx_to_class = {}
+        class_sample_num = {}
         for name, label in class_to_idx.items():
             idx_to_class[label] = name
+            class_sample_num[label] = 0
 
         n_videos = len(video_ids)
         dataset = []
@@ -103,8 +106,9 @@ class HeartDataset(data.Dataset):
                 'label': label_id
             }
             dataset.append(sample)
+            class_sample_num[label_id] += 1
 
-        return dataset, idx_to_class
+        return dataset, idx_to_class, class_sample_num
 
     def __loading(self, path):
         clip = self.loader(path)
