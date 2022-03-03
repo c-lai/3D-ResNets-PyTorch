@@ -84,13 +84,13 @@ class VideoLoaderFlowHDF5(object):
 
 class HeartVolumeLoader(object):
     def __call__(self, pickle_path):
-        hv = []
+        # hv = []
         with open(pickle_path, 'rb') as f:
             hv_dict = pickle.load(f)
         hv_obj = hc.HeartVolume(**hv_dict)
-        px_array = hv_obj.pixel_array
-        myo_mask = hv_obj.segmentation
-        for i in range(px_array.shape[2]):
-            hv.append(px_array[:,:,i]*(myo_mask[:,:,i]==4))
+        # px_array = hv_obj.pixel_array
+        # myo_mask = hv_obj.segmentation
+        # for i in range(px_array.shape[2]):
+        #     hv.append(px_array[:,:,i]*(myo_mask[:,:,i]==4))
 
-        return px_array
+        return hv_obj

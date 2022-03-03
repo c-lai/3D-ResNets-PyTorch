@@ -728,3 +728,19 @@ def pixel_array_for_visualization(hv_obj):
 
 def sort_order(hv_obj):
     return np.array([c.slice_unique_id for c in hv_obj.children])
+
+
+def get_margin(dimension_sum):
+    front = np.min(np.where(dimension_sum!=0))
+    end = np.max(np.where(dimension_sum!=0))
+    
+    return front, end
+
+
+def remove_zero_margin(image):
+    x_margin = get_margin(image.sum(axis=1).sum(axis=1))
+    y_margin = get_margin(image.sum(axis=0).sum(axis=1))
+    image_no_margin = image[x_margin[0]:x_margin[1]+1, y_margin[0]:y_margin[1]+1, :]
+
+    return image_no_margin
+

@@ -83,6 +83,8 @@ def val_epoch(epoch,
     targets = torch.cat(targets_list, dim=0)
     precision, recall, f1 = calculate_precision_and_recall_binary(outputs, targets)
     auc = calculate_auc(outputs, targets)
+    acc = calculate_accuracy(outputs, targets, balanced=True)
+    loss = criterion(outputs, targets)
 
     if distributed:
         loss_sum = torch.tensor([losses.sum],
@@ -108,16 +110,16 @@ def val_epoch(epoch,
 
     if logger is not None:
         logger.log({'epoch': epoch, 
-                    'loss': losses.avg, 
-                    'acc': accuracies.avg, 
+                    'loss': loss.item(), 
+                    'acc': acc, 
                     'precision': precision,
                     'recall': recall,
                     'f1': f1,
                     'auc': auc})
 
     if tb_writer is not None:
-        tb_writer.add_scalar('val/loss', losses.avg, epoch)
-        tb_writer.add_scalar('val/acc', accuracies.avg, epoch)
+        tb_writer.add_scalar('val/loss', loss.item(), epoch)
+        tb_writer.add_scalar('val/acc', acc, epoch)
         tb_writer.add_scalar('val/precision', precision, epoch)
         tb_writer.add_scalar('val/recall', recall, epoch)
         tb_writer.add_scalar('val/f1', f1, epoch)

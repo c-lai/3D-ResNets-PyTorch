@@ -5,7 +5,8 @@ from functools import partialmethod
 import torch
 import numpy as np
 from sklearn.metrics import precision_recall_fscore_support, \
-    precision_recall_curve, roc_auc_score
+    precision_recall_curve, roc_auc_score, \
+        balanced_accuracy_score, accuracy_score
 
 
 class AverageMeter(object):
@@ -61,16 +62,18 @@ def calculate_accuracy(outputs, targets):
         return n_correct_elems / batch_size
 
 
-def calculate_accuracy_binary(outputs, targets):
+def calculate_accuracy_binary(outputs, targets, balanced=False):
     with torch.no_grad():
-        batch_size = targets.size(0)
-
         pred = torch.where(outputs>0.5, 1, 0)
-        pred = pred.t()
-        correct = pred.eq(targets.view(1, -1))
-        n_correct_elems = correct.float().sum().item()
+        # pred = pred.t()
+        if balanced:
+            acc = balanced_accuracy_score(targets.view(-1, 1).cpu().numpy(),
+                pred.cpu().numpy())
+        else:
+            acc = accuracy_score(targets.view(-1, 1).cpu().numpy(),
+                pred.cpu().numpy())
 
-        return n_correct_elems / batch_size
+        return acc
 
 
 def calculate_precision_and_recall(outputs, targets, pos_label=1):

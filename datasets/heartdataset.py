@@ -1,10 +1,16 @@
+import imp
 import json
 from pathlib import Path
 
 import torch
 import torch.utils.data as data
 
+import numpy as np
+
+from heart_volume.heart_utils import remove_zero_margin
 from .loader import HeartVolumeLoader
+from config import target_image_size
+import matplotlib.pyplot as plt
 
 
 def get_class_labels(data):
@@ -111,16 +117,46 @@ class HeartDataset(data.Dataset):
         return dataset, idx_to_class, class_sample_num
 
     def __loading(self, path):
-        clip = self.loader(path)
+        hv = self.loader(path)
+        myo_image = self.__preproc(hv)
         # if self.spatial_transform is not None:
         #     self.spatial_transform.randomize_parameters() ## needs change!
         #     clip = [self.spatial_transform(img) for img in clip]
         # clip = torch.stack(clip, 0).permute(1, 0, 2, 3)
-        clip = torch.tensor(clip).permute(2, 0, 1)
-        clip = clip[None, :]
+        # clip = torch.tensor(clip).permute(2, 0, 1)
+        myo_image = torch.tensor(myo_image).permute(2, 0, 1)
+        myo_image = myo_image[None, :]
 
-        return clip
+        return myo_image
 
+    def __preproc(self, hv):
+        image = hv.pixel_array
+        segmentation = hv.segmentation
+
+        myo_img = image*(segmentation==4)
+        cropped_img = remove_zero_margin(myo_img)
+        bp_median = np.median(image[segmentation==1])
+        normalized_myo_img = cropped_img / bp_median * 0.5
+
+        w, h, l = normalized_myo_img.shape
+        if max(w, h) <= target_image_size:
+            padded = np.pad(normalized_myo_img, 
+                            ((int(np.floor((target_image_size-w)/2)), int(np.ceil((target_image_size-w)/2))),
+                             (int(np.floor((target_image_size-h)/2)), int(np.ceil((target_image_size-h)/2))),
+                             (0, 0)), 
+                            'constant', constant_values=0)
+        else: 
+            raise Exception('Target image size is smaller than cropped image.')
+        
+        # for k in range(padded.shape[2]):
+        #     plt.subplot(5, 4, k + 1)
+        #     plt.title(k+1)
+        #     plt.imshow(padded[:,:,k], cmap = 'gray')
+        #     # plt.imshow(image[:,:,k]*(seg[:,:,k]==4), cmap = 'gray')
+        # plt.clf()
+
+        return padded
+    
     def __getitem__(self, index):
         path = self.data[index]['video']
         if isinstance(self.target_type, list):

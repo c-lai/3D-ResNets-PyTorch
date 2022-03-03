@@ -47,7 +47,7 @@ def train_epoch(epoch,
         outputs = model(inputs)
         outputs_list.append(outputs)
         loss = criterion(outputs, targets)
-        acc = calculate_accuracy_binary(outputs, targets)
+        acc = calculate_accuracy_binary(outputs, targets, balanced=True)
         # precision, recall, f1 = calculate_precision_and_recall_binary(outputs, targets)
         # auc = calculate_auc(outputs, targets)
 
@@ -102,6 +102,8 @@ def train_epoch(epoch,
     targets = torch.cat(targets_list, dim=0)
     precision, recall, f1 = calculate_precision_and_recall_binary(outputs, targets)
     auc = calculate_auc(outputs, targets)
+    acc = calculate_accuracy(outputs, targets, balanced=True)
+    loss = criterion(outputs, targets)
 
     if distributed:
         loss_sum = torch.tensor([losses.sum],
@@ -128,8 +130,8 @@ def train_epoch(epoch,
     if epoch_logger is not None:
         epoch_logger.log({
             'epoch': epoch,
-            'loss': losses.avg,
-            'acc': accuracies.avg,
+            'loss': loss.item(),
+            'acc': acc,
             'precision': precision,
             'recall': recall,
             'f1': f1,
@@ -138,8 +140,8 @@ def train_epoch(epoch,
         })
 
     if tb_writer is not None:
-        tb_writer.add_scalar('train/loss', losses.avg, epoch)
-        tb_writer.add_scalar('train/acc', accuracies.avg, epoch)
+        tb_writer.add_scalar('train/loss', loss.item(), epoch)
+        tb_writer.add_scalar('train/acc', acc, epoch)
         tb_writer.add_scalar('train/precision', precision, epoch)
         tb_writer.add_scalar('train/recall', recall, epoch)
         tb_writer.add_scalar('train/f1', f1, epoch)
