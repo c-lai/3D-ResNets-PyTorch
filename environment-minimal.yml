@@ -1,0 +1,23 @@
+name: torch_HCM
+channels:
+  - defaults
+dependencies:
+  - python=3.7
+  - cudatoolkit=11.3
+  - pytorch::pytorch=1.10
+  - pytorch::torchaudio
+  - torchvision
+  - tensorboard
+  - psutil
+  - pandas
+  - ipykernel
+  - h5py
+  - joblib
+  - scikit-learn
+  - pip
+  - pip:
+    - functional
+    - nibabel
+    - pydicom
+    - medpy
+    - scikit-image

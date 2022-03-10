@@ -76,7 +76,6 @@ class PreActivationBottleneck(nn.Module):
 
         return out
 
-
 def generate_model(model_depth, **kwargs):
     assert model_depth in [10, 18, 34, 50, 101, 152, 200]
 

@@ -4,7 +4,9 @@ from functools import partialmethod
 
 import torch
 import numpy as np
-from sklearn.metrics import precision_recall_fscore_support
+from sklearn.metrics import precision_recall_fscore_support, \
+    precision_recall_curve, roc_auc_score, \
+        balanced_accuracy_score, accuracy_score
 
 
 class AverageMeter(object):
@@ -60,14 +62,59 @@ def calculate_accuracy(outputs, targets):
         return n_correct_elems / batch_size
 
 
+def calculate_accuracy_binary(outputs, targets, balanced=False):
+    with torch.no_grad():
+        pred = torch.where(outputs>0.5, 1, 0)
+        # pred = pred.t()
+        if balanced:
+            acc = balanced_accuracy_score(targets.view(-1, 1).cpu().numpy(),
+                pred.cpu().numpy())
+        else:
+            acc = accuracy_score(targets.view(-1, 1).cpu().numpy(),
+                pred.cpu().numpy())
+
+        return acc
+
+
 def calculate_precision_and_recall(outputs, targets, pos_label=1):
     with torch.no_grad():
         _, pred = outputs.topk(1, 1, largest=True, sorted=True)
-        precision, recall, _, _ = precision_recall_fscore_support(
+        precision, recall, f1, _ = precision_recall_fscore_support(
             targets.view(-1, 1).cpu().numpy(),
             pred.cpu().numpy())
 
-        return precision[pos_label], recall[pos_label]
+        return precision[pos_label], recall[pos_label], f1[pos_label]
+
+
+def calculate_precision_and_recall_binary(outputs, targets, pos_label=1):
+    with torch.no_grad():
+        precisions, recalls, thresholds = precision_recall_curve(
+            targets.view(-1, 1).cpu().numpy(), 
+            outputs.cpu().numpy(),
+            pos_label=pos_label)
+        f1s = 2*precisions*recalls/(precisions+recalls+0.001)
+        optimal_index = np.argmax(f1s)
+        precision = precisions[optimal_index]
+        recall = recalls[optimal_index]
+        f1 = f1s[optimal_index]
+        # pred = torch.where(outputs>0.5, 1, 0)
+        # precision, recall, f1, _ = precision_recall_fscore_support(
+        #     targets.view(-1, 1).cpu().numpy(),
+        #     pred.cpu().numpy(),
+        #     pos_label=pos_label,
+        #     average='binary',
+        #     zero_division=0)
+
+        return precision, recall, f1
+
+
+def calculate_auc(outputs, targets, pos_label=1):
+    with torch.no_grad():
+        auc = roc_auc_score(
+            targets.view(-1, 1).cpu().numpy(),
+            outputs.cpu().numpy())
+
+        return auc
 
 
 def worker_init_fn(worker_id):
@@ -95,3 +142,17 @@ def partialclass(cls, *args, **kwargs):
         __init__ = partialmethod(cls.__init__, *args, **kwargs)
 
     return PartialClass
+
+
+def select_n_random(dataset, n=50):
+    '''
+    Selects n random datapoints and their corresponding labels from a dataset
+    '''
+    perm = np.random.RandomState(seed=42).permutation(len(dataset))
+    return torch.utils.data.Subset(dataset, perm[:n])
+
+
+def get_activation(activation, name):
+    def hook(module, input, output):
+        activation[name] = output.detach()
+    return hook

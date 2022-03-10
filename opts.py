@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 def parse_opts():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(fromfile_prefix_chars='@')
     parser.add_argument('--root_path',
                         default=None,
                         type=Path,
@@ -255,7 +255,7 @@ def parse_opts():
     parser.add_argument('--input_type',
                         default='rgb',
                         type=str,
-                        help='(rgb | flow)')
+                        help='(rgb | flow | gray)')
     parser.add_argument('--manual_seed',
                         default=1,
                         type=int,
@@ -270,7 +270,7 @@ def parse_opts():
     parser.add_argument('--file_type',
                         default='jpg',
                         type=str,
-                        help='(jpg | hdf5)')
+                        help='(jpg | hdf5 | pickle)')
     parser.add_argument('--tensorboard',
                         action='store_true',
                         help='If true, output tensorboard log file.')

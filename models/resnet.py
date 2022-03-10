@@ -147,7 +147,8 @@ class ResNet(nn.Module):
                                        stride=2)
 
         self.avgpool = nn.AdaptiveAvgPool3d((1, 1, 1))
-        self.fc = nn.Linear(block_inplanes[3] * block.expansion, n_classes)
+        self.fc = nn.Linear(block_inplanes[3] * block.expansion, 8)
+        self.fc2 = nn.Linear(8, n_classes)
 
         for m in self.modules():
             if isinstance(m, nn.Conv3d):
@@ -208,7 +209,9 @@ class ResNet(nn.Module):
         x = self.avgpool(x)
 
         x = x.view(x.size(0), -1)
-        x = self.fc(x)
+        x = F.relu(self.fc(x))
+        x = self.fc2(x)
+        # x = torch.sigmoid(self.fc2(x))
 
         return x
 

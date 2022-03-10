@@ -5,8 +5,8 @@ import os
 
 import numpy as np
 import torch
-from torch.nn import CrossEntropyLoss
-from torch.optim import SGD, lr_scheduler
+from torch.nn import CrossEntropyLoss, BCELoss, BCEWithLogitsLoss
+from torch.optim import SGD, RMSprop, lr_scheduler
 import torch.multiprocessing as mp
 import torch.distributed as dist
 from torch.backends import cudnn
@@ -30,6 +30,7 @@ from utils import Logger, worker_init_fn, get_lr
 from training import train_epoch
 from validation import val_epoch
 import inference
+from utils import select_n_random
 
 
 def json_serial(obj):
@@ -67,6 +68,8 @@ def get_opt():
         opt.n_input_channels = 2
         opt.mean = opt.mean[:2]
         opt.std = opt.std[:2]
+    elif opt.input_type == 'gray':
+        opt.n_input_channels = 1
 
     if opt.distributed:
         opt.dist_rank = int(os.environ["OMPI_COMM_WORLD_RANK"])
@@ -165,6 +168,7 @@ def get_train_utils(opt, model_parameters):
     train_data = get_training_data(opt.video_path, opt.annotation_path,
                                    opt.dataset, opt.input_type, opt.file_type,
                                    spatial_transform, temporal_transform)
+    train_data_subset = select_n_random(train_data)
     if opt.distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(
             train_data)
@@ -177,13 +181,20 @@ def get_train_utils(opt, model_parameters):
                                                pin_memory=True,
                                                sampler=train_sampler,
                                                worker_init_fn=worker_init_fn)
+    train_subset_loader = torch.utils.data.DataLoader(train_data_subset,
+                                                    batch_size=opt.batch_size,
+                                                    shuffle=(train_sampler is None),
+                                                    num_workers=opt.n_threads,
+                                                    pin_memory=True,
+                                                    sampler=train_sampler,
+                                                    worker_init_fn=worker_init_fn)
 
     if opt.is_master_node:
         train_logger = Logger(opt.result_path / 'train.log',
-                              ['epoch', 'loss', 'acc', 'lr'])
+                              ['epoch', 'loss', 'acc', 'precision', 'recall', 'f1', 'auc', 'lr'])
         train_batch_logger = Logger(
             opt.result_path / 'train_batch.log',
-            ['epoch', 'batch', 'iter', 'loss', 'acc', 'lr'])
+            ['epoch', 'batch', 'iter', 'loss', 'acc', 'lr']) #'precision', 'recall', 'f1', 'auc'
     else:
         train_logger = None
         train_batch_logger = None
@@ -192,12 +203,16 @@ def get_train_utils(opt, model_parameters):
         dampening = 0
     else:
         dampening = opt.dampening
-    optimizer = SGD(model_parameters,
-                    lr=opt.learning_rate,
-                    momentum=opt.momentum,
-                    dampening=dampening,
-                    weight_decay=opt.weight_decay,
-                    nesterov=opt.nesterov)
+    # optimizer = SGD(model_parameters,
+    #                 lr=opt.learning_rate,
+    #                 momentum=opt.momentum,
+    #                 dampening=dampening,
+    #                 weight_decay=opt.weight_decay,
+    #                 nesterov=opt.nesterov)
+    optimizer = RMSprop(model_parameters,
+                        lr=opt.learning_rate,
+                        momentum=opt.momentum,
+                        weight_decay=opt.weight_decay)
 
     assert opt.lr_scheduler in ['plateau', 'multistep']
     assert not (opt.lr_scheduler == 'plateau' and opt.no_val)
@@ -209,7 +224,7 @@ def get_train_utils(opt, model_parameters):
                                              opt.multistep_milestones)
 
     return (train_loader, train_sampler, train_logger, train_batch_logger,
-            optimizer, scheduler)
+            optimizer, scheduler, train_subset_loader)
 
 
 def get_val_utils(opt):
@@ -237,6 +252,7 @@ def get_val_utils(opt):
                                                opt.input_type, opt.file_type,
                                                spatial_transform,
                                                temporal_transform)
+    val_data_subset = select_n_random(val_data)
     if opt.distributed:
         val_sampler = torch.utils.data.distributed.DistributedSampler(
             val_data, shuffle=False)
@@ -251,14 +267,23 @@ def get_val_utils(opt):
                                              sampler=val_sampler,
                                              worker_init_fn=worker_init_fn,
                                              collate_fn=collate_fn)
+    val_subset_loader = torch.utils.data.DataLoader(val_data_subset,
+                                                batch_size=(opt.batch_size //
+                                                            opt.n_val_samples),
+                                                shuffle=False,
+                                                num_workers=opt.n_threads,
+                                                pin_memory=True,
+                                                sampler=val_sampler,
+                                                worker_init_fn=worker_init_fn,
+                                                collate_fn=collate_fn)
 
     if opt.is_master_node:
         val_logger = Logger(opt.result_path / 'val.log',
-                            ['epoch', 'loss', 'acc'])
+                            ['epoch', 'loss', 'acc', 'precision', 'recall', 'f1', 'auc'])
     else:
         val_logger = None
 
-    return val_loader, val_logger
+    return val_loader, val_subset_loader, val_logger
 
 
 def get_inference_utils(opt):
@@ -315,6 +340,21 @@ def save_checkpoint(save_file_path, epoch, arch, model, optimizer, scheduler):
     torch.save(save_states, save_file_path)
 
 
+# def save_embedding(data_loader, model, device, tb_writer, phase):
+#     for i, (inputs, targets) in enumerate(data_loader):
+#         targets = targets.to(device, non_blocking=True).view(-1, 1).float()
+#         outputs = model(inputs)
+
+#         activations = {}
+#         model.fc2.register_forward_hook(get_activation(activations, 'fc'))
+#         outputs = model(inputs)
+
+#         latent_vectors = activations['fc']
+#         features = latent_vectors.view(-1, 16)
+#         tb_writer.add_embedding(features,
+#                                 metadata=labels)
+
+
 def main_worker(index, opt):
     random.seed(opt.manual_seed)
     np.random.seed(opt.manual_seed)
@@ -353,18 +393,16 @@ def main_worker(index, opt):
     if opt.is_master_node:
         print(model)
 
-    criterion = CrossEntropyLoss().to(opt.device)
-
     if not opt.no_train:
         (train_loader, train_sampler, train_logger, train_batch_logger,
-         optimizer, scheduler) = get_train_utils(opt, parameters)
+         optimizer, scheduler, train_subset_loader) = get_train_utils(opt, parameters)
         if opt.resume_path is not None:
             opt.begin_epoch, optimizer, scheduler = resume_train_utils(
                 opt.resume_path, opt.begin_epoch, optimizer, scheduler)
             if opt.overwrite_milestones:
                 scheduler.milestones = opt.multistep_milestones
     if not opt.no_val:
-        val_loader, val_logger = get_val_utils(opt)
+        val_loader, val_subset_loader, val_logger = get_val_utils(opt)
 
     if opt.tensorboard and opt.is_master_node:
         from torch.utils.tensorboard import SummaryWriter
@@ -375,6 +413,10 @@ def main_worker(index, opt):
                                       purge_step=opt.begin_epoch)
     else:
         tb_writer = None
+    
+    # criterion = CrossEntropyLoss().to(opt.device)
+    # criterion = BCELoss().to(opt.device)
+    criterion = BCEWithLogitsLoss(pos_weight=train_loader.dataset.pos_weight).to(opt.device)
 
     prev_val_loss = None
     for i in range(opt.begin_epoch, opt.n_epochs + 1):
@@ -382,9 +424,9 @@ def main_worker(index, opt):
             if opt.distributed:
                 train_sampler.set_epoch(i)
             current_lr = get_lr(optimizer)
-            train_epoch(i, train_loader, model, criterion, optimizer,
+            train_epoch(i, train_loader, train_subset_loader, model, criterion, optimizer,
                         opt.device, current_lr, train_logger,
-                        train_batch_logger, tb_writer, opt.distributed)
+                        train_batch_logger, tb_writer, opt.distributed, )
 
             if i % opt.checkpoint == 0 and opt.is_master_node:
                 save_file_path = opt.result_path / 'save_{}.pth'.format(i)
@@ -392,7 +434,7 @@ def main_worker(index, opt):
                                 scheduler)
 
         if not opt.no_val:
-            prev_val_loss = val_epoch(i, val_loader, model, criterion,
+            prev_val_loss = val_epoch(i, val_loader, val_subset_loader, model, criterion,
                                       opt.device, val_logger, tb_writer,
                                       opt.distributed)
 
