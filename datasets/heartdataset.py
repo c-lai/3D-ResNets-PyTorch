@@ -99,15 +99,8 @@ class HeartDataset(data.Dataset):
             if not video_path.exists():
                 continue
 
-            # segment = annotations[i]['segment']
-            # if segment[1] == 1:
-            #     continue
-
-            # frame_indices = list(range(segment[0], segment[1]))
             sample = {
                 'video': video_path,
-                # 'segment': segment,
-                # 'frame_indices': frame_indices,
                 'video_id': video_ids[i],
                 'label': label_id
             }
@@ -119,11 +112,6 @@ class HeartDataset(data.Dataset):
     def __loading(self, path):
         hv = self.loader(path)
         myo_image = self.__preproc(hv)
-        # if self.spatial_transform is not None:
-        #     self.spatial_transform.randomize_parameters() ## needs change!
-        #     clip = [self.spatial_transform(img) for img in clip]
-        # clip = torch.stack(clip, 0).permute(1, 0, 2, 3)
-        # clip = torch.tensor(clip).permute(2, 0, 1)
         myo_image = torch.tensor(myo_image).permute(2, 0, 1)
         myo_image = myo_image[None, :]
 
@@ -135,12 +123,10 @@ class HeartDataset(data.Dataset):
 
         myo_img = image*(segmentation==4)
         cropped_img = remove_zero_margin(myo_img)
-        bp_median = np.median(image[segmentation==1])
-        normalized_myo_img = cropped_img / bp_median * 0.5
 
-        w, h, l = normalized_myo_img.shape
+        w, h, l = cropped_img.shape
         if max(w, h) <= target_image_size:
-            padded = np.pad(normalized_myo_img, 
+            padded = np.pad(cropped_img, 
                             ((int(np.floor((target_image_size-w)/2)), int(np.ceil((target_image_size-w)/2))),
                              (int(np.floor((target_image_size-h)/2)), int(np.ceil((target_image_size-h)/2))),
                              (0, 0)), 
@@ -164,16 +150,12 @@ class HeartDataset(data.Dataset):
         else:
             target = self.data[index][self.target_type]
 
-        # frame_indices = self.data[index]['frame_indices']
-        # if self.temporal_transform is not None:
-        #     frame_indices = self.temporal_transform(frame_indices)
-
-        clip = self.__loading(path)
+        img = self.__loading(path)
 
         if self.target_transform is not None:
             target = self.target_transform(target)
 
-        return clip, target
+        return img, target
 
     def __len__(self):
         return len(self.data)

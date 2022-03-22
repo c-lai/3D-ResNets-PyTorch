@@ -4,6 +4,7 @@ import sys
 
 import torch
 import torch.distributed as dist
+import torch.nn.functional as F
 
 from utils import AverageMeter, calculate_accuracy, calculate_accuracy_binary,\
     calculate_precision_and_recall_binary, calculate_auc, \
@@ -42,7 +43,7 @@ def val_epoch(epoch,
 
             targets = targets.to(device, non_blocking=True).view(-1, 1).float()
             targets_list.append(targets)
-            outputs = model(inputs)
+            outputs = F.sigmoid(model(inputs))
             outputs_list.append(outputs)
             loss = criterion(outputs, targets)
             acc = calculate_accuracy_binary(outputs, targets)
