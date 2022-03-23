@@ -28,25 +28,21 @@ def val_epoch(epoch,
     data_time = AverageMeter()
     losses = AverageMeter()
     accuracies = AverageMeter()
-    # precisions = AverageMeter()
-    # recalls = AverageMeter()
-    # f1s = AverageMeter()
-    # aucs= AverageMeter()
 
     end_time = time.time()
 
     with torch.no_grad():
-        outputs_list = []
+        output_list = []
         targets_list = []
         for i, (inputs, targets) in enumerate(data_loader):
             data_time.update(time.time() - end_time)
 
             targets = targets.to(device, non_blocking=True).view(-1, 1).float()
             targets_list.append(targets)
-            outputs = F.sigmoid(model(inputs))
-            outputs_list.append(outputs)
-            loss = criterion(outputs, targets)
-            acc = calculate_accuracy_binary(outputs, targets)
+            output = F.sigmoid(model(inputs))
+            output_list.append(output)
+            loss = criterion(output, targets)
+            acc = calculate_accuracy_binary(output, targets)
             # precision, recall, f1= calculate_precision_and_recall_binary(outputs, targets)
             # auc = calculate_auc(outputs, targets)
 
@@ -80,7 +76,7 @@ def val_epoch(epoch,
                     #   rec=recalls,
                     #   f1=f1s,
                     #   auc=aucs))
-    outputs = torch.cat(outputs_list, dim=0)
+    outputs = torch.cat(output_list, dim=0)
     targets = torch.cat(targets_list, dim=0)
     precision, recall, f1 = calculate_precision_and_recall_binary(outputs, targets)
     auc = calculate_auc(outputs, targets)
