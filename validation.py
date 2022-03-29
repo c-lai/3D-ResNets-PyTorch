@@ -39,9 +39,10 @@ def val_epoch(epoch,
 
             targets = targets.to(device, non_blocking=True).view(-1, 1).float()
             targets_list.append(targets)
-            output = F.sigmoid(model(inputs))
+            NN_output = model(inputs)
+            output = torch.sigmoid(NN_output)
             output_list.append(output)
-            loss = criterion(output, targets)
+            loss = criterion(NN_output, targets)
             acc = calculate_accuracy_binary(output, targets)
             # precision, recall, f1= calculate_precision_and_recall_binary(outputs, targets)
             # auc = calculate_auc(outputs, targets)

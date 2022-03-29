@@ -41,9 +41,10 @@ def train_epoch(epoch,
 
         targets = targets.to(device, non_blocking=True).view(-1, 1).float()
         targets_list.append(targets)
-        output = F.sigmoid(model(inputs))
+        NN_output = model(inputs)
+        output = torch.sigmoid(NN_output)
         output_list.append(output)
-        loss = criterion(output, targets)
+        loss = criterion(NN_output, targets)
         acc = calculate_accuracy_binary(output, targets, balanced=True)
 
         losses.update(loss.item(), inputs.size(0))

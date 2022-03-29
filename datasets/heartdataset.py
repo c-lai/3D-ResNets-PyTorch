@@ -10,7 +10,7 @@ import numpy as np
 from heart_volume.heart_utils import remove_zero_margin
 from .loader import HeartVolumeLoader
 from config import target_image_size
-import matplotlib.pyplot as plt
+
 
 
 def get_class_labels(data):
@@ -119,14 +119,14 @@ class HeartDataset(data.Dataset):
 
     def __preproc(self, hv):
         image = hv.pixel_array
-        segmentation = hv.segmentation
+        # segmentation = hv.segmentation
 
-        myo_img = image*(segmentation==4)
-        cropped_img = remove_zero_margin(myo_img)
+        # myo_img = image*(segmentation==4)
+        # cropped_img = remove_zero_margin(myo_img)
 
-        w, h, l = cropped_img.shape
+        w, h, l = image.shape
         if max(w, h) <= target_image_size:
-            padded = np.pad(cropped_img, 
+            padded = np.pad(image, 
                             ((int(np.floor((target_image_size-w)/2)), int(np.ceil((target_image_size-w)/2))),
                              (int(np.floor((target_image_size-h)/2)), int(np.ceil((target_image_size-h)/2))),
                              (0, 0)), 
@@ -134,6 +134,7 @@ class HeartDataset(data.Dataset):
         else: 
             raise Exception('Target image size is smaller than cropped image.')
         
+        # import matplotlib.pyplot as plt
         # for k in range(padded.shape[2]):
         #     plt.subplot(5, 4, k + 1)
         #     plt.title(k+1)
