@@ -98,7 +98,7 @@ def train_epoch(epoch,
     targets = torch.cat(targets_list, dim=0)
     precision, recall, f1 = calculate_precision_and_recall_binary(outputs, targets)
     auc = calculate_auc(outputs, targets)
-    acc = calculate_accuracy(outputs, targets, balanced=True)
+    acc = calculate_accuracy_binary(outputs, targets, balanced=True)
     loss = criterion(outputs, targets)
 
     if distributed:
