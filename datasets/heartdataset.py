@@ -111,38 +111,14 @@ class HeartDataset(data.Dataset):
 
     def __loading(self, path):
         hv = self.loader(path)
-        myo_image = self.__preproc(hv)
-        myo_image = torch.tensor(myo_image).permute(2, 0, 1)
-        myo_image = myo_image[None, :]
+        hv_img = hv.pixel_array
 
-        return myo_image
+        if self.spatial_transform is not None:
+            self.spatial_transform.randomize_parameters()
+            slices = [self.spatial_transform(np.clip(hv_img[:,:,slice,None],0,1)) for slice in range(hv_img.shape[2])]
+        hv_img = torch.stack(slices, 0).permute(1, 0, 2, 3)
 
-    def __preproc(self, hv):
-        image = hv.pixel_array
-        # segmentation = hv.segmentation
-
-        # myo_img = image*(segmentation==4)
-        # cropped_img = remove_zero_margin(myo_img)
-
-        w, h, l = image.shape
-        if max(w, h) <= target_image_size:
-            padded = np.pad(image, 
-                            ((int(np.floor((target_image_size-w)/2)), int(np.ceil((target_image_size-w)/2))),
-                             (int(np.floor((target_image_size-h)/2)), int(np.ceil((target_image_size-h)/2))),
-                             (0, 0)), 
-                            'constant', constant_values=0)
-        else: 
-            raise Exception('Target image size is smaller than cropped image.')
-        
-        # import matplotlib.pyplot as plt
-        # for k in range(padded.shape[2]):
-        #     plt.subplot(5, 4, k + 1)
-        #     plt.title(k+1)
-        #     plt.imshow(padded[:,:,k], cmap = 'gray')
-        #     # plt.imshow(image[:,:,k]*(seg[:,:,k]==4), cmap = 'gray')
-        # plt.clf()
-
-        return padded
+        return hv_img
     
     def __getitem__(self, index):
         path = self.data[index]['video']

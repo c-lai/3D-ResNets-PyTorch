@@ -2,7 +2,10 @@ import random
 
 from torchvision.transforms import transforms
 from torchvision.transforms import functional as F
+from torch.nn.functional import pad
+from torch import tensor
 from PIL import Image
+from math import ceil, floor
 
 
 class Compose(transforms.Compose):
@@ -50,6 +53,30 @@ class Scale(transforms.Scale):
 
 
 class CenterCrop(transforms.CenterCrop):
+
+    def randomize_parameters(self):
+        pass
+
+
+class PadToSize(object):
+
+    def __init__(self,
+                 target_size,
+                 fill=0, 
+                 padding_mode='constant'):
+        self.target_size = target_size
+        self.fill = fill
+        self.padding_mode=padding_mode
+
+    def __call__(self, img):
+        c, h, w= img.shape
+        assert max(h, w) <= self.target_size, 'Cannot pad image to smaller sizes.'
+        padding = [ floor((self.target_size-w)/2), ceil((self.target_size-w)/2),
+                    floor((self.target_size-h)/2), ceil((self.target_size-h)/2),
+                    0, 0]
+        padded_img = pad(img, padding, self.padding_mode, self.fill)
+
+        return padded_img
 
     def randomize_parameters(self):
         pass

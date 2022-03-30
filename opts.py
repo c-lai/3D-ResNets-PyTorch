@@ -49,7 +49,7 @@ def parse_opts():
               '(conv1, layer1, fc, denseblock1, classifier, ...).'
               'The default means all layers are fine-tuned.'))
     parser.add_argument('--sample_size',
-                        default=112,
+                        default=96,
                         type=int,
                         help='Height and width of inputs')
     parser.add_argument('--sample_duration',
@@ -63,12 +63,12 @@ def parse_opts():
         help='If larger than 1, input frames are subsampled with the stride.')
     parser.add_argument(
         '--train_crop',
-        default='random',
+        default='none',
         type=str,
         help=('Spatial cropping method in training. '
               'random is uniform. '
               'corner is selection from 4 corners and 1 center. '
-              '(random | corner | center)'))
+              '(random | corner | center | none)'))
     parser.add_argument('--train_crop_min_scale',
                         default=0.25,
                         type=float,
@@ -77,7 +77,10 @@ def parse_opts():
                         default=0.75,
                         type=float,
                         help='Min aspect ratio for random cropping in training')
-    parser.add_argument('--no_hflip',
+    parser.add_argument('--no_padding',
+                        action='store_true',
+                        help='If true padding is not performed.')
+    parser.add_argument('--hflip',
                         action='store_true',
                         help='If true holizontal flipping is not performed.')
     parser.add_argument('--colorjitter',

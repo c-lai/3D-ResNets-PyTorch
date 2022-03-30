@@ -122,22 +122,23 @@ def val_epoch(epoch,
         tb_writer.add_scalar('val/recall', recall, epoch)
         tb_writer.add_scalar('val/f1', f1, epoch)
         tb_writer.add_scalar('val/auc', auc, epoch)
+        
+        if not epoch%5:
+            latent_vectors_list = []
+            targets_list = []
+            for i, (inputs, targets) in enumerate(subset_loader):
+                activations = {}
+                model.module.fc.register_forward_hook(get_activation(activations, 'fc'))
+                outputs = model(inputs)
 
-        latent_vectors_list = []
-        targets_list = []
-        for i, (inputs, targets) in enumerate(subset_loader):
-            activations = {}
-            model.module.fc.register_forward_hook(get_activation(activations, 'fc'))
-            outputs = model(inputs)
-
-            latent_vectors_list.append(activations['fc'])
-            targets_list.append(targets)
-        latent_vectors = torch.cat(latent_vectors_list, dim=0)
-        targets_subset = torch.cat(targets_list, dim=0)
-        # features = latent_vectors.view(-1, 16)
-        tb_writer.add_embedding(latent_vectors,
-                                metadata=targets_subset,
-                                global_step=epoch,
-                                tag='val/latent space')
+                latent_vectors_list.append(activations['fc'])
+                targets_list.append(targets)
+            latent_vectors = torch.cat(latent_vectors_list, dim=0)
+            targets_subset = torch.cat(targets_list, dim=0)
+            # features = latent_vectors.view(-1, 16)
+            tb_writer.add_embedding(latent_vectors,
+                                    metadata=targets_subset,
+                                    global_step=epoch,
+                                    tag='val/latent space')
 
     return losses.avg

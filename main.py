@@ -16,7 +16,7 @@ from opts import parse_opts
 from model import (generate_model, load_pretrained_model, make_data_parallel,
                    get_fine_tuning_parameters)
 from mean import get_mean_std
-from spatial_transforms import (Compose, Normalize, Resize, CenterCrop,
+from spatial_transforms import (Compose, Normalize, PadToSize, Resize, CenterCrop,
                                 CornerCrop, MultiScaleCornerCrop,
                                 RandomResizedCrop, RandomHorizontalFlip,
                                 ToTensor, ScaleValue, ColorJitter,
@@ -70,6 +70,8 @@ def get_opt():
         opt.std = opt.std[:2]
     elif opt.input_type == 'gray':
         opt.n_input_channels = 1
+        opt.mean = opt.mean[:1]
+        opt.std = opt.std[:1]
 
     if opt.distributed:
         opt.dist_rank = int(os.environ["OMPI_COMM_WORLD_RANK"])
@@ -126,7 +128,7 @@ def get_normalize_method(mean, std, no_mean_norm, no_std_norm):
 
 
 def get_train_utils(opt, model_parameters):
-    assert opt.train_crop in ['random', 'corner', 'center']
+    assert opt.train_crop in ['random', 'corner', 'center', 'none']
     spatial_transform = []
     if opt.train_crop == 'random':
         spatial_transform.append(
@@ -144,11 +146,13 @@ def get_train_utils(opt, model_parameters):
         spatial_transform.append(CenterCrop(opt.sample_size))
     normalize = get_normalize_method(opt.mean, opt.std, opt.no_mean_norm,
                                      opt.no_std_norm)
-    if not opt.no_hflip:
+    if opt.hflip:
         spatial_transform.append(RandomHorizontalFlip())
     if opt.colorjitter:
         spatial_transform.append(ColorJitter())
     spatial_transform.append(ToTensor())
+    if not opt.no_padding:
+        spatial_transform.append(PadToSize(target_size=opt.sample_size))
     if opt.input_type == 'flow':
         spatial_transform.append(PickFirstChannels(n=2))
     spatial_transform.append(ScaleValue(opt.value_scale))
