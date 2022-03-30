@@ -234,11 +234,13 @@ def get_train_utils(opt, model_parameters):
 def get_val_utils(opt):
     normalize = get_normalize_method(opt.mean, opt.std, opt.no_mean_norm,
                                      opt.no_std_norm)
-    spatial_transform = [
-        Resize(opt.sample_size),
-        CenterCrop(opt.sample_size),
-        ToTensor()
-    ]
+    spatial_transform = []
+    if not opt.dataset=='HCM':
+        spatial_transform.append(Resize(opt.sample_size))
+        spatial_transform.append(CenterCrop(opt.sample_size))
+    spatial_transform.append(ToTensor())
+    if not opt.no_padding:
+        spatial_transform.append(PadToSize(target_size=opt.sample_size))
     if opt.input_type == 'flow':
         spatial_transform.append(PickFirstChannels(n=2))
     spatial_transform.extend([ScaleValue(opt.value_scale), normalize])

@@ -71,9 +71,11 @@ class PadToSize(object):
     def __call__(self, img):
         c, h, w= img.shape
         assert max(h, w) <= self.target_size, 'Cannot pad image to smaller sizes.'
-        padding = [ floor((self.target_size-w)/2), ceil((self.target_size-w)/2),
-                    floor((self.target_size-h)/2), ceil((self.target_size-h)/2),
-                    0, 0]
+        padding = [ 
+            floor((self.target_size-w)/2), ceil((self.target_size-w)/2),
+            floor((self.target_size-h)/2), ceil((self.target_size-h)/2),
+            0, 0
+            ]
         padded_img = pad(img, padding, self.padding_mode, self.fill)
 
         return padded_img
