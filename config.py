@@ -25,6 +25,3 @@ dnn_seg_weights_path = os.path.join(ROOT_DIR,'SegDNN')
 # ROI Specific parameters
 roi_img_size = 192
 roi_minimum_area = 30
-
-# Target image size
-target_image_size = 96

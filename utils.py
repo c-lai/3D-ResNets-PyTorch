@@ -62,9 +62,9 @@ def calculate_accuracy(outputs, targets):
         return n_correct_elems / batch_size
 
 
-def calculate_accuracy_binary(outputs, targets, balanced=False):
+def calculate_accuracy_binary(outputs, targets, threshold=0.5, balanced=False):
     with torch.no_grad():
-        pred = torch.where(outputs>0.5, 1, 0)
+        pred = torch.where(outputs>threshold, 1, 0)
         # pred = pred.t()
         if balanced:
             acc = balanced_accuracy_score(targets.view(-1, 1).cpu().numpy(),
@@ -97,6 +97,7 @@ def calculate_precision_and_recall_binary(outputs, targets, pos_label=1):
         precision = precisions[optimal_index]
         recall = recalls[optimal_index]
         f1 = f1s[optimal_index]
+        threshold = thresholds[optimal_index]
         # pred = torch.where(outputs>0.5, 1, 0)
         # precision, recall, f1, _ = precision_recall_fscore_support(
         #     targets.view(-1, 1).cpu().numpy(),
@@ -105,7 +106,7 @@ def calculate_precision_and_recall_binary(outputs, targets, pos_label=1):
         #     average='binary',
         #     zero_division=0)
 
-        return precision, recall, f1
+        return precision, recall, f1, threshold
 
 
 def calculate_auc(outputs, targets, pos_label=1):

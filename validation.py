@@ -79,9 +79,9 @@ def val_epoch(epoch,
                     #   auc=aucs))
     outputs = torch.cat(output_list, dim=0)
     targets = torch.cat(targets_list, dim=0)
-    precision, recall, f1 = calculate_precision_and_recall_binary(outputs, targets)
+    precision, recall, f1, threshold = calculate_precision_and_recall_binary(outputs, targets)
     auc = calculate_auc(outputs, targets)
-    acc = calculate_accuracy_binary(outputs, targets, balanced=True)
+    acc = calculate_accuracy_binary(outputs, targets, threshold, balanced=True)
     loss = criterion(outputs, targets)
 
     if distributed:
@@ -113,7 +113,8 @@ def val_epoch(epoch,
                     'precision': precision,
                     'recall': recall,
                     'f1': f1,
-                    'auc': auc})
+                    'auc': auc,
+                    'threshold': threshold})
 
     if tb_writer is not None:
         tb_writer.add_scalar('val/loss', loss.item(), epoch)
@@ -122,6 +123,7 @@ def val_epoch(epoch,
         tb_writer.add_scalar('val/recall', recall, epoch)
         tb_writer.add_scalar('val/f1', f1, epoch)
         tb_writer.add_scalar('val/auc', auc, epoch)
+        tb_writer.add_scalar('val/threshold', auc, threshold)
         
         if not epoch%5:
             latent_vectors_list = []
