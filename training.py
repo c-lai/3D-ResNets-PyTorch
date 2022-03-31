@@ -96,9 +96,9 @@ def train_epoch(epoch,
                                                         #  auc=aucs))
     outputs = torch.cat(output_list, dim=0)
     targets = torch.cat(targets_list, dim=0)
-    precision, recall, f1 = calculate_precision_and_recall_binary(outputs, targets)
+    precision, recall, f1, threshold= calculate_precision_and_recall_binary(outputs, targets)
     auc = calculate_auc(outputs, targets)
-    acc = calculate_accuracy_binary(outputs, targets, balanced=True)
+    acc = calculate_accuracy_binary(outputs, targets, threshold, balanced=True)
     loss = criterion(outputs, targets)
 
     if distributed:
@@ -132,6 +132,7 @@ def train_epoch(epoch,
             'recall': recall,
             'f1': f1,
             'auc': auc,
+            'threshold': threshold,
             'lr': current_lr
         })
 
@@ -142,6 +143,7 @@ def train_epoch(epoch,
         tb_writer.add_scalar('train/recall', recall, epoch)
         tb_writer.add_scalar('train/f1', f1, epoch)
         tb_writer.add_scalar('train/auc', auc, epoch)
+        tb_writer.add_scalar('train/threshold', threshold, epoch)
         tb_writer.add_scalar('train/lr', current_lr, epoch)
 
         if not epoch%5:

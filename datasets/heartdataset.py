@@ -9,8 +9,6 @@ import numpy as np
 
 from heart_volume.heart_utils import remove_zero_margin
 from .loader import HeartVolumeLoader
-from config import target_image_size
-
 
 
 def get_class_labels(data):

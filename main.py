@@ -207,16 +207,16 @@ def get_train_utils(opt, model_parameters):
         dampening = 0
     else:
         dampening = opt.dampening
-    # optimizer = SGD(model_parameters,
-    #                 lr=opt.learning_rate,
-    #                 momentum=opt.momentum,
-    #                 dampening=dampening,
-    #                 weight_decay=opt.weight_decay,
-    #                 nesterov=opt.nesterov)
-    optimizer = RMSprop(model_parameters,
-                        lr=opt.learning_rate,
-                        momentum=opt.momentum,
-                        weight_decay=opt.weight_decay)
+    optimizer = SGD(model_parameters,
+                    lr=opt.learning_rate,
+                    momentum=opt.momentum,
+                    dampening=dampening,
+                    weight_decay=opt.weight_decay,
+                    nesterov=opt.nesterov)
+    # optimizer = RMSprop(model_parameters,
+    #                     lr=opt.learning_rate,
+    #                     momentum=opt.momentum,
+    #                     weight_decay=opt.weight_decay)
 
     assert opt.lr_scheduler in ['plateau', 'multistep']
     assert not (opt.lr_scheduler == 'plateau' and opt.no_val)
