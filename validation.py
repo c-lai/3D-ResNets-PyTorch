@@ -123,7 +123,7 @@ def val_epoch(epoch,
         tb_writer.add_scalar('val/recall', recall, epoch)
         tb_writer.add_scalar('val/f1', f1, epoch)
         tb_writer.add_scalar('val/auc', auc, epoch)
-        tb_writer.add_scalar('val/threshold', auc, epoch)
+        tb_writer.add_scalar('val/threshold', threshold, epoch)
         
         if not epoch%10:
             latent_vectors_list = []

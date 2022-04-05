@@ -110,6 +110,7 @@ class HeartDataset(data.Dataset):
     def __loading(self, path):
         hv = self.loader(path)
         hv_img = hv.pixel_array
+        hv_img = np.rot90(hv_img.copy(), -round(hv.rotation_angle/90))
 
         if self.spatial_transform is not None:
             self.spatial_transform.randomize_parameters()
