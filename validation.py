@@ -43,7 +43,7 @@ def val_epoch(epoch,
             output = torch.sigmoid(NN_output)
             output_list.append(output)
             loss = criterion(NN_output, targets)
-            acc = calculate_accuracy_binary(output, targets)
+            acc = calculate_accuracy_binary(output, targets, balanced=True)
             # precision, recall, f1= calculate_precision_and_recall_binary(outputs, targets)
             # auc = calculate_auc(outputs, targets)
 
@@ -123,9 +123,9 @@ def val_epoch(epoch,
         tb_writer.add_scalar('val/recall', recall, epoch)
         tb_writer.add_scalar('val/f1', f1, epoch)
         tb_writer.add_scalar('val/auc', auc, epoch)
-        tb_writer.add_scalar('val/threshold', auc, threshold)
+        tb_writer.add_scalar('val/threshold', auc, epoch)
         
-        if not epoch%5:
+        if not epoch%10:
             latent_vectors_list = []
             targets_list = []
             for i, (inputs, targets) in enumerate(subset_loader):

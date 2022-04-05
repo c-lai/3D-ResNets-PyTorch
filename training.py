@@ -146,7 +146,7 @@ def train_epoch(epoch,
         tb_writer.add_scalar('train/threshold', threshold, epoch)
         tb_writer.add_scalar('train/lr', current_lr, epoch)
 
-        if not epoch%5:
+        if not epoch%10:
             latent_vectors_list = []
             targets_list = []
             for i, (inputs, targets) in enumerate(subset_loader):

@@ -82,7 +82,10 @@ def parse_opts():
                         help='If true padding is not performed.')
     parser.add_argument('--hflip',
                         action='store_true',
-                        help='If true holizontal flipping is not performed.')
+                        help='If true holizontal flipping is performed.')
+    parser.add_argument('--rotate',
+                        action='store_true',
+                        help='If true 90 rotation is performed.')
     parser.add_argument('--colorjitter',
                         action='store_true',
                         help='If true colorjitter is performed.')

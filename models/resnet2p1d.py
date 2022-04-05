@@ -148,6 +148,7 @@ class ResNet(nn.Module):
                  no_max_pool=False,
                  shortcut_type='B',
                  widen_factor=1.0,
+                 latent_space=8,
                  n_classes=400):
         super().__init__()
 
@@ -195,7 +196,8 @@ class ResNet(nn.Module):
                                        stride=2)
 
         self.avgpool = nn.AdaptiveAvgPool3d((1, 1, 1))
-        self.fc = nn.Linear(block_inplanes[3] * block.expansion, n_classes)
+        self.fc = nn.Linear(block_inplanes[3] * block.expansion, latent_space)
+        self.fc2 = nn.Linear(latent_space, n_classes)
 
         for m in self.modules():
             if isinstance(m, nn.Conv3d):
@@ -261,6 +263,7 @@ class ResNet(nn.Module):
 
         x = x.view(x.size(0), -1)
         x = self.fc(x)
+        x = self.fc2(x)
 
         return x
 

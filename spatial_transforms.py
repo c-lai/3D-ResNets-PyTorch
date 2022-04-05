@@ -6,6 +6,7 @@ from torch.nn.functional import pad
 from torch import tensor
 from PIL import Image
 from math import ceil, floor
+from numpy import rot90
 
 
 class Compose(transforms.Compose):
@@ -242,3 +243,15 @@ class PickFirstChannels(object):
 
     def randomize_parameters(self):
         pass
+
+
+class Rotates(object):
+
+    def __init__(self):
+        self.randomize_parameters()
+
+    def __call__(self, array):
+        return rot90(array, self.rot_times).copy()
+
+    def randomize_parameters(self):
+        self.rot_times=random.randint(0,3)

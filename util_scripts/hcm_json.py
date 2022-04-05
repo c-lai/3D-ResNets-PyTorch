@@ -17,24 +17,25 @@ def convert_ehr_csv_to_dict(csv_dir_path, hv_dir_path, split_index):
         subsets = []
         labels = []
         for hv_file in hv_dir_path.iterdir():
-            pickle_name = hv_file.name
-            mri_id = int(pickle_name.split('_')[0])
-            try:
-                subset_index = data.loc[data["MRI_ID"]==mri_id]["subset"].values[0]
-                label = data.loc[data["MRI_ID"]==mri_id]["Adverse_Outcome"].values[0]
-    
-                if subset_index == 0:
-                    continue
-                elif subset_index == 1:
-                    subset = 'training'
-                elif subset_index == 2:
-                    subset = 'validation'
+            if hv_file.suffix == '.pickle':
+                pickle_name = hv_file.name
+                mri_id = int(pickle_name.split('_')[0])
+                try:
+                    subset_index = data.loc[data["MRI_ID"]==mri_id]["subset"].values[0]
+                    label = data.loc[data["MRI_ID"]==mri_id]["Adverse_Outcome"].values[0]
+        
+                    if subset_index == 0:
+                        continue
+                    elif subset_index == 1:
+                        subset = 'training'
+                    elif subset_index == 2:
+                        subset = 'validation'
 
-                keys.append(pickle_name.split('.')[0])
-                subsets.append(subset)
-                labels.append(label)
-            except:
-                continue
+                    keys.append(pickle_name.split('.')[0])
+                    subsets.append(subset)
+                    labels.append(label)
+                except:
+                    continue
 
         # for i in range(data.shape[0]):
         #     row = data.iloc[i, :]
@@ -104,11 +105,11 @@ if __name__ == '__main__':
                         help='Directory path of dst json file.')
 
     argv = ["/mnt/host/c/Users/Changxin/Documents/datasets/HCM_DATA_Organized/HCM_EHR/", 
-            "/mnt/host/c/Users/Changxin/Documents/datasets/HCM_DATA_Organized/hv_dict_standard_LGE/",
-            "/mnt/host/c/Users/Changxin/Documents/datasets/HCM_DATA_Organized/"]
+            "/mnt/host/c/Users/Changxin/Documents/datasets/HCM_DATA_Organized/hv_dict_standard_LGE_v2/",
+            "/mnt/host/c/Users/Changxin/Documents/datasets/HCM_DATA_Organized/data_splits"]
     args = parser.parse_args(argv)
 
-    for split_index in range(1, 2):
-        dst_json_path = args.dst_dir_path / 'HCM_{}.json'.format(split_index)
+    for split_index in range(1, 4):
+        dst_json_path = args.dst_dir_path / 'HCM_lv_{}.json'.format(split_index)
         convert_ehr_csv_to_json(args.EHR_path, split_index, args.hv_path,
                                 dst_json_path)

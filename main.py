@@ -20,7 +20,7 @@ from spatial_transforms import (Compose, Normalize, PadToSize, Resize, CenterCro
                                 CornerCrop, MultiScaleCornerCrop,
                                 RandomResizedCrop, RandomHorizontalFlip,
                                 ToTensor, ScaleValue, ColorJitter,
-                                PickFirstChannels)
+                                PickFirstChannels, Rotates)
 from temporal_transforms import (LoopPadding, TemporalRandomCrop,
                                  TemporalCenterCrop, TemporalEvenCrop,
                                  SlidingWindow, TemporalSubsampling)
@@ -150,6 +150,8 @@ def get_train_utils(opt, model_parameters):
         spatial_transform.append(RandomHorizontalFlip())
     if opt.colorjitter:
         spatial_transform.append(ColorJitter())
+    if opt.rotate:
+        spatial_transform.append(Rotates())
     spatial_transform.append(ToTensor())
     if not opt.no_padding:
         spatial_transform.append(PadToSize(target_size=opt.sample_size))

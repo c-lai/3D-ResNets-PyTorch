@@ -46,13 +46,15 @@ class ResNeXt(ResNet):
                  no_max_pool=False,
                  shortcut_type='B',
                  cardinality=32,
+                 latent_space=8,
                  n_classes=400):
         block = partialclass(block, cardinality=cardinality)
         super().__init__(block, layers, block_inplanes, n_input_channels,
                          conv1_t_size, conv1_t_stride, no_max_pool,
                          shortcut_type, n_classes)
 
-        self.fc = nn.Linear(cardinality * 32 * block.expansion, n_classes)
+        self.fc = nn.Linear(cardinality * 32 * block.expansion, latent_space)
+        self.fc2 = nn.Linear(latent_space, n_classes)
 
 
 def generate_model(model_depth, **kwargs):
