@@ -6,7 +6,7 @@ import os
 import numpy as np
 import torch
 from torch.nn import CrossEntropyLoss, BCELoss, BCEWithLogitsLoss
-from torch.optim import SGD, RMSprop, lr_scheduler
+from torch.optim import SGD, RMSprop, Adam, lr_scheduler
 import torch.multiprocessing as mp
 import torch.distributed as dist
 from torch.backends import cudnn
@@ -219,6 +219,9 @@ def get_train_utils(opt, model_parameters):
     #                     lr=opt.learning_rate,
     #                     momentum=opt.momentum,
     #                     weight_decay=opt.weight_decay)
+    # optimizer = Adam(model_parameters,
+    #                  lr=opt.learning_rate,
+    #                  weight_decay=opt.weight_decay)
 
     assert opt.lr_scheduler in ['plateau', 'multistep']
     assert not (opt.lr_scheduler == 'plateau' and opt.no_val)

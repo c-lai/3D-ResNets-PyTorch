@@ -16,12 +16,12 @@ def get_inplanes():
 class ResNeXtBottleneck(Bottleneck):
     expansion = 2
 
-    def __init__(self, inplanes, planes, cardinality, stride=1,
+    def __init__(self, in_planes, planes, cardinality, stride=1,
                  downsample=None):
-        super().__init__(inplanes, planes, stride, downsample)
+        super().__init__(in_planes, planes, stride, downsample)
 
         mid_planes = cardinality * planes // 32
-        self.conv1 = conv1x1x1(inplanes, mid_planes)
+        self.conv1 = conv1x1x1(in_planes, mid_planes)
         self.bn1 = nn.BatchNorm3d(mid_planes)
         self.conv2 = nn.Conv3d(mid_planes,
                                mid_planes,
@@ -51,7 +51,7 @@ class ResNeXt(ResNet):
         block = partialclass(block, cardinality=cardinality)
         super().__init__(block, layers, block_inplanes, n_input_channels,
                          conv1_t_size, conv1_t_stride, no_max_pool,
-                         shortcut_type, n_classes)
+                         shortcut_type, latent_space=latent_space, n_classes=n_classes)
 
         self.fc = nn.Linear(cardinality * 32 * block.expansion, latent_space)
         self.fc2 = nn.Linear(latent_space, n_classes)
