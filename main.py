@@ -181,9 +181,9 @@ def get_train_utils(opt, model_parameters):
     else:
         train_sampler = None
     if opt.balanced_sampling:
-        weights = [train_data.pos_weight if sample[1] else torch.tensor(1) for sample in train_data_subset]
+        weights = [train_data.pos_weight if sample[1] else torch.tensor(1) for sample in train_data]
         train_sampler = torch.utils.data.WeightedRandomSampler(
-            weights, opt.batch_size
+            weights, len(weights)
             )
     train_loader = torch.utils.data.DataLoader(train_data,
                                                batch_size=opt.batch_size,
