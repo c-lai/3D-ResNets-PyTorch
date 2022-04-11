@@ -95,6 +95,9 @@ def parse_opts():
                         help=('Temporal cropping method in training. '
                               'random is uniform. '
                               '(random | center)'))
+    parser.add_argument('--balanced_sampling',
+                        action='store_true',
+                        help='If true positive and negative samples are sampled equally during training.')
     parser.add_argument('--learning_rate',
                         default=0.1,
                         type=float,

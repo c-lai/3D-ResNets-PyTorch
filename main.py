@@ -180,6 +180,11 @@ def get_train_utils(opt, model_parameters):
             train_data)
     else:
         train_sampler = None
+    if opt.balanced_sampling:
+        weights = [train_data.pos_weight if sample[1] else torch.tensor(1) for sample in train_data_subset]
+        train_sampler = torch.utils.data.WeightedRandomSampler(
+            weights, opt.batch_size
+            )
     train_loader = torch.utils.data.DataLoader(train_data,
                                                batch_size=opt.batch_size,
                                                shuffle=(train_sampler is None),
@@ -189,10 +194,10 @@ def get_train_utils(opt, model_parameters):
                                                worker_init_fn=worker_init_fn)
     train_subset_loader = torch.utils.data.DataLoader(train_data_subset,
                                                     batch_size=opt.batch_size,
-                                                    shuffle=(train_sampler is None),
+                                                    shuffle=False,
                                                     num_workers=opt.n_threads,
                                                     pin_memory=True,
-                                                    sampler=train_sampler,
+                                                    sampler=None,
                                                     worker_init_fn=worker_init_fn)
 
     if opt.is_master_node:
@@ -427,7 +432,10 @@ def main_worker(index, opt):
     
     # criterion = CrossEntropyLoss().to(opt.device)
     # criterion = BCELoss().to(opt.device)
-    criterion = BCEWithLogitsLoss(pos_weight=train_loader.dataset.pos_weight).to(opt.device)
+    if opt.balanced_sampling:
+        criterion = BCEWithLogitsLoss().to(opt.device)
+    else:
+        criterion = BCEWithLogitsLoss(pos_weight=train_loader.dataset.pos_weight).to(opt.device)
 
     prev_val_loss = None
     for i in range(opt.begin_epoch, opt.n_epochs + 1):
