@@ -54,7 +54,7 @@ class ResNeXt(ResNet):
                          shortcut_type, latent_space=latent_space, n_classes=n_classes)
 
         self.fc = nn.Linear(cardinality * 32 * block.expansion, latent_space)
-        self.fc2 = nn.Linear(latent_space, n_classes)
+        self.classifier = nn.Linear(latent_space, n_classes)
 
 
 def generate_model(model_depth, **kwargs):

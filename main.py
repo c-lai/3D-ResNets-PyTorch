@@ -356,21 +356,6 @@ def save_checkpoint(save_file_path, epoch, arch, model, optimizer, scheduler):
     torch.save(save_states, save_file_path)
 
 
-# def save_embedding(data_loader, model, device, tb_writer, phase):
-#     for i, (inputs, targets) in enumerate(data_loader):
-#         targets = targets.to(device, non_blocking=True).view(-1, 1).float()
-#         outputs = model(inputs)
-
-#         activations = {}
-#         model.fc2.register_forward_hook(get_activation(activations, 'fc'))
-#         outputs = model(inputs)
-
-#         latent_vectors = activations['fc']
-#         features = latent_vectors.view(-1, 16)
-#         tb_writer.add_embedding(features,
-#                                 metadata=labels)
-
-
 def main_worker(index, opt):
     random.seed(opt.manual_seed)
     np.random.seed(opt.manual_seed)
