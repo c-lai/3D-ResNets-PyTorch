@@ -34,25 +34,23 @@ def train_epoch(epoch,
     accuracies = AverageMeter()
 
     end_time = time.time()
-    output_list = []
+    outputs_list = []
+    probs_list = []
     targets_list = []
     for i, (inputs, targets) in enumerate(data_loader):
         data_time.update(time.time() - end_time)
 
         targets = targets.to(device, non_blocking=True).view(-1, 1).float()
         targets_list.append(targets)
-        NN_output = model(inputs)
-        output = torch.sigmoid(NN_output)
-        output_list.append(output)
-        loss = criterion(NN_output, targets)
-        acc = calculate_accuracy_binary(output, targets, balanced=True)
+        outputs = model(inputs)
+        outputs_list.append(outputs)
+        probs = torch.sigmoid(outputs)
+        probs_list.append(probs)
+        loss = criterion(outputs, targets)
+        acc = calculate_accuracy_binary(probs, targets, balanced=True)
 
         losses.update(loss.item(), inputs.size(0))
         accuracies.update(acc, inputs.size(0))
-        # precisions.update(precision, inputs.size(0))
-        # recalls.update(recall, inputs.size(0))
-        # f1s.update(f1, inputs.size(0))
-        # aucs.update(auc, inputs.size(0))
 
         optimizer.zero_grad()
         loss.backward()
@@ -68,10 +66,6 @@ def train_epoch(epoch,
                 'iter': (epoch - 1) * len(data_loader) + (i + 1),
                 'loss': losses.val,
                 'acc': accuracies.val,
-                # 'precision': precisions.val,
-                # 'recall': recalls.val,
-                # 'f1': f1s.val,
-                # 'auc': aucs.val,
                 'lr': current_lr
             })
 
@@ -80,26 +74,20 @@ def train_epoch(epoch,
               'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
               'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
               'Acc {acc.val:.3f} ({acc.avg:.3f})\t'.format(epoch,
-            #   'Precision {pre.val:.3f} ({pre.avg:.3f})\t'
-            #   'Recall {rec.val:.3f} ({rec.avg:.3f})\t'
-            #   'F1 {f1.val:.3f} ({f1.avg:.3f})\t'
-            #   'AUC {auc.val:.3f} ({auc.avg:.3f})\t'.format(epoch,
-                                                         i + 1,
-                                                         len(data_loader),
-                                                         batch_time=batch_time,
-                                                         data_time=data_time,
-                                                         loss=losses,
-                                                         acc=accuracies))
-                                                        #  pre=precisions,
-                                                        #  rec=recalls,
-                                                        #  f1=f1s,
-                                                        #  auc=aucs))
-    outputs = torch.cat(output_list, dim=0)
-    targets = torch.cat(targets_list, dim=0)
-    precision, recall, f1, threshold= calculate_precision_and_recall_binary(outputs, targets)
-    auc = calculate_auc(outputs, targets)
-    acc = calculate_accuracy_binary(outputs, targets, threshold, balanced=True)
-    loss = criterion(outputs, targets)
+                    i + 1,
+                    len(data_loader),
+                    batch_time=batch_time,
+                    data_time=data_time,
+                    loss=losses,
+                    acc=accuracies))
+
+    outputs_all = torch.cat(outputs_list, dim=0)
+    probs_all = torch.cat(probs_list, dim=0)
+    targets_all = torch.cat(targets_list, dim=0)
+    precision, recall, f1, threshold= calculate_precision_and_recall_binary(probs_all, targets_all)
+    auc = calculate_auc(probs_all, targets_all)
+    acc = calculate_accuracy_binary(probs_all, targets_all, threshold, balanced=True)
+    loss = criterion(outputs_all, targets_all)
 
     if distributed:
         loss_sum = torch.tensor([losses.sum],
@@ -158,7 +146,6 @@ def train_epoch(epoch,
                 targets_list.append(targets)
             latent_vectors = torch.cat(latent_vectors_list, dim=0)
             targets_subset = torch.cat(targets_list, dim=0)
-            # features = latent_vectors.view(-1, 16)
             tb_writer.add_embedding(latent_vectors,
                                     metadata=targets_subset,
                                     global_step=epoch,
