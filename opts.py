@@ -136,7 +136,7 @@ def parse_opts():
     parser.add_argument('--optimizer',
                         default='sgd',
                         type=str,
-                        help='Currently only support SGD')
+                        help='Optimizers (sgd | rmsprop | adam)')
     parser.add_argument('--lr_scheduler',
                         default='multistep',
                         type=str,

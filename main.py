@@ -205,7 +205,7 @@ def get_train_utils(opt, model_parameters):
                               ['epoch', 'loss', 'acc', 'precision', 'recall', 'f1', 'auc', 'lr'])
         train_batch_logger = Logger(
             opt.result_path / 'train_batch.log',
-            ['epoch', 'batch', 'iter', 'loss', 'acc', 'lr']) #'precision', 'recall', 'f1', 'auc'
+            ['epoch', 'batch', 'iter', 'loss', 'acc', 'lr'])
     else:
         train_logger = None
         train_batch_logger = None
@@ -214,19 +214,23 @@ def get_train_utils(opt, model_parameters):
         dampening = 0
     else:
         dampening = opt.dampening
-    optimizer = SGD(model_parameters,
-                    lr=opt.learning_rate,
-                    momentum=opt.momentum,
-                    dampening=dampening,
-                    weight_decay=opt.weight_decay,
-                    nesterov=opt.nesterov)
-    # optimizer = RMSprop(model_parameters,
-    #                     lr=opt.learning_rate,
-    #                     momentum=opt.momentum,
-    #                     weight_decay=opt.weight_decay)
-    # optimizer = Adam(model_parameters,
-    #                  lr=opt.learning_rate,
-    #                  weight_decay=opt.weight_decay)
+    assert opt.optimizer in ['sgd', 'rmsprop', 'adam']
+    if opt.optimizer == 'sgd':
+        optimizer = SGD(model_parameters,
+                        lr=opt.learning_rate,
+                        momentum=opt.momentum,
+                        dampening=dampening,
+                        weight_decay=opt.weight_decay,
+                        nesterov=opt.nesterov)
+    if opt.optimizer == 'rmsprop':
+        optimizer = RMSprop(model_parameters,
+                            lr=opt.learning_rate,
+                            momentum=opt.momentum,
+                            weight_decay=opt.weight_decay)
+    if opt.optimizer == 'adam':
+        optimizer = Adam(model_parameters,
+                        lr=opt.learning_rate,
+                        weight_decay=opt.weight_decay)
 
     assert opt.lr_scheduler in ['plateau', 'multistep']
     assert not (opt.lr_scheduler == 'plateau' and opt.no_val)
