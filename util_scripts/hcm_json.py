@@ -9,7 +9,7 @@ def convert_ehr_csv_to_dict(csv_dir_path, hv_dir_path, split_index):
     database = {}
     for file_path in csv_dir_path.iterdir():
         filename = file_path.name
-        if 'split{}'.format(split_index) not in filename:
+        if 'Kfold_{}'.format(split_index) not in filename:
             continue
             
         data = pd.read_csv(csv_dir_path / filename, index_col=0, header=0)
@@ -25,7 +25,7 @@ def convert_ehr_csv_to_dict(csv_dir_path, hv_dir_path, split_index):
                     label = data.loc[data["MRI_ID"]==mri_id]["Adverse_Outcome"].values[0]
         
                     if subset_index == 0:
-                        subset = 'test'
+                        subset = 'testing'
                     elif subset_index == 1:
                         subset = 'training'
                     elif subset_index == 2:
@@ -105,11 +105,11 @@ if __name__ == '__main__':
                         help='Directory path of dst json file.')
 
     argv = ["/mnt/host/c/Users/Changxin/Documents/datasets/HCM_DATA_Organized/HCM_EHR/", 
-            "/mnt/host/c/Users/Changxin/Documents/datasets/HCM_DATA_Organized/hv_dict_standard_LGE_v2/",
+            "/mnt/host/c/Users/Changxin/Documents/datasets/HCM_DATA_Organized/hv_dict_standard_LGE/",
             "/mnt/host/c/Users/Changxin/Documents/datasets/HCM_DATA_Organized/data_splits"]
     args = parser.parse_args(argv)
 
-    for split_index in range(1, 4):
-        dst_json_path = args.dst_dir_path / 'HCM_lv_{}.json'.format(split_index)
+    for split_index in range(5):
+        dst_json_path = args.dst_dir_path / 'HCM_myo_Kfold_{}.json'.format(split_index)
         convert_ehr_csv_to_json(args.EHR_path, split_index, args.hv_path,
                                 dst_json_path)
