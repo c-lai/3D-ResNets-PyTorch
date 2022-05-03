@@ -6,7 +6,7 @@ import torch
 import numpy as np
 from sklearn.metrics import precision_recall_fscore_support, \
     precision_recall_curve, roc_auc_score, \
-        balanced_accuracy_score, accuracy_score
+        balanced_accuracy_score, accuracy_score, roc_curve, auc
 
 
 class AverageMeter(object):
@@ -116,6 +116,41 @@ def calculate_auc(outputs, targets, pos_label=1):
             outputs.cpu().numpy())
 
         return auc
+
+
+def plot_roc(outputs, targets, filename='roc.png'):
+    with torch.no_grad():
+        fpr, tpr, _ = roc_curve(targets.view(-1, 1).cpu().numpy(),
+            outputs.cpu().numpy())
+        roc_auc = auc(fpr, tpr)
+        
+        import matplotlib.pyplot as plt
+        plt.figure()
+        lw = 2
+        plt.plot(
+            fpr,
+            tpr,
+            color="darkorange",
+            lw=lw,
+            label="ROC curve (area = %0.2f)" % roc_auc,
+        )
+        plt.plot([0, 1], [0, 1], color="black", lw=lw, linestyle="--")
+        plt.axis('square')
+        plt.xlim([0.0, 1.05])
+        plt.ylim([0.0, 1.0])
+        plt.xlabel("False Positive Rate")
+        plt.ylabel("True Positive Rate")
+        plt.title("Receiver operating characteristic curve")
+        plt.legend(loc="lower right")
+        plt.savefig(filename)
+
+
+def save_roc_data(outputs, targets, filename):
+    with torch.no_grad():
+        fpr, tpr, _ = roc_curve(targets.view(-1, 1).cpu().numpy(),
+            outputs.cpu().numpy())
+        fprtpr = np.concatenate([fpr[None,:],tpr[None,:]])
+        np.save(filename, fprtpr)
 
 
 def worker_init_fn(worker_id):

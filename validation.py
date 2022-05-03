@@ -8,7 +8,7 @@ import torch.nn.functional as F
 
 from utils import AverageMeter, calculate_accuracy, calculate_accuracy_binary,\
     calculate_precision_and_recall_binary, calculate_auc, \
-        get_activation
+        get_activation, plot_roc
 
 
 def val_epoch(epoch,
@@ -41,6 +41,7 @@ def val_epoch(epoch,
             targets = targets.to(device, non_blocking=True).view(-1, 1).float()
             targets_list.append(targets)
             outputs = model(inputs)
+            outputs_list.append(outputs)
             probs = torch.sigmoid(outputs)
             probs_list.append(probs)
             loss = criterion(outputs, targets)
@@ -131,4 +132,4 @@ def val_epoch(epoch,
                                     global_step=epoch,
                                     tag='val/latent space')
 
-    return losses.avg
+    return loss.item()

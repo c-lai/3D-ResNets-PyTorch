@@ -232,14 +232,17 @@ def get_train_utils(opt, model_parameters):
                         lr=opt.learning_rate,
                         weight_decay=opt.weight_decay)
 
-    assert opt.lr_scheduler in ['plateau', 'multistep']
+    assert opt.lr_scheduler in ['plateau', 'multistep', 'cosine']
     assert not (opt.lr_scheduler == 'plateau' and opt.no_val)
     if opt.lr_scheduler == 'plateau':
         scheduler = lr_scheduler.ReduceLROnPlateau(
-            optimizer, 'min', patience=opt.plateau_patience)
-    else:
+            optimizer, 'min', patience=opt.plateau_patience, cooldown=5, min_lr=opt.learning_rate*1e-3)
+    elif opt.lr_scheduler == 'multistep':
         scheduler = lr_scheduler.MultiStepLR(optimizer,
                                              opt.multistep_milestones)
+    else:
+        scheduler = lr_scheduler.CosineAnnealingWarmRestarts(optimizer,
+                                             opt.T_0, opt.T_multi)
 
     return (train_loader, train_sampler, train_logger, train_batch_logger,
             optimizer, scheduler, train_subset_loader)
@@ -311,11 +314,15 @@ def get_inference_utils(opt):
 
     normalize = get_normalize_method(opt.mean, opt.std, opt.no_mean_norm,
                                      opt.no_std_norm)
-
-    spatial_transform = [Resize(opt.sample_size)]
-    if opt.inference_crop == 'center':
-        spatial_transform.append(CenterCrop(opt.sample_size))
+    spatial_transform = []
+    if not opt.dataset=='HCM':
+        spatial_transform.append(Resize(opt.sample_size))
+        if opt.inference_crop == 'center':
+            spatial_transform.append(CenterCrop(opt.sample_size))
     spatial_transform.append(ToTensor())
+    if not opt.no_padding:
+        spatial_transform.append(PadToSize(target_size=opt.sample_size))
+
     if opt.input_type == 'flow':
         spatial_transform.append(PickFirstChannels(n=2))
     spatial_transform.extend([ScaleValue(opt.value_scale), normalize])
@@ -341,6 +348,11 @@ def get_inference_utils(opt):
         pin_memory=True,
         worker_init_fn=worker_init_fn,
         collate_fn=collate_fn)
+    
+    if opt.is_master_node and opt.test:
+        test_logger = Logger(opt.result_path / 'test.log',
+                            ['epoch', 'loss', 'acc', 'precision', 'recall', 'f1', 'auc'])
+        return inference_loader, test_logger
 
     return inference_loader, inference_data.class_names
 
@@ -408,6 +420,8 @@ def main_worker(index, opt):
                 scheduler.milestones = opt.multistep_milestones
     if not opt.no_val:
         val_loader, val_subset_loader, val_logger = get_val_utils(opt)
+    if opt.test:
+        test_loader, test_logger = get_inference_utils(opt)
 
     if opt.tensorboard and opt.is_master_node:
         from torch.utils.tensorboard import SummaryWriter
@@ -421,7 +435,7 @@ def main_worker(index, opt):
     
     # criterion = CrossEntropyLoss().to(opt.device)
     # criterion = BCELoss().to(opt.device)
-    if opt.balanced_sampling:
+    if opt.balanced_sampling or opt.no_train:
         criterion = BCEWithLogitsLoss().to(opt.device)
     else:
         criterion = BCEWithLogitsLoss(pos_weight=train_loader.dataset.pos_weight).to(opt.device)
@@ -446,7 +460,12 @@ def main_worker(index, opt):
                                       opt.device, val_logger, tb_writer,
                                       opt.distributed)
 
-        if not opt.no_train and opt.lr_scheduler == 'multistep':
+        if opt.test:
+            inference.test_epoch(i, test_loader, model, criterion,
+                                      opt.device, test_logger, tb_writer,
+                                      opt.distributed)
+
+        if not opt.no_train and (opt.lr_scheduler == 'multistep' or opt.lr_scheduler == 'cosine'):
             scheduler.step()
         elif not opt.no_train and opt.lr_scheduler == 'plateau':
             scheduler.step(prev_val_loss)

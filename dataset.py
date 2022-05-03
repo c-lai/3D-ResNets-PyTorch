@@ -161,10 +161,10 @@ def get_inference_data(video_path,
                        temporal_transform=None,
                        target_transform=None):
     assert dataset_name in [
-        'kinetics', 'activitynet', 'ucf101', 'hmdb51', 'mit'
+        'kinetics', 'activitynet', 'ucf101', 'hmdb51', 'mit', 'HCM'
     ]
-    assert input_type in ['rgb', 'flow']
-    assert file_type in ['jpg', 'hdf5']
+    assert input_type in ['rgb', 'flow', 'gray']
+    assert file_type in ['jpg', 'hdf5', 'pickle']
     assert inference_subset in ['train', 'val', 'test']
 
     if file_type == 'jpg':
@@ -178,13 +178,17 @@ def get_inference_data(video_path,
 
         video_path_formatter = (
             lambda root_path, label, video_id: root_path / label / video_id)
-    else:
+    elif file_type == 'hdf5':
         if input_type == 'rgb':
             loader = VideoLoaderHDF5()
         else:
             loader = VideoLoaderFlowHDF5()
         video_path_formatter = (lambda root_path, label, video_id: root_path /
                                 label / f'{video_id}.hdf5')
+    else:
+        assert input_type == 'gray', 'HCM is only compatible with gray input.'
+        loader = HeartVolumeLoader()
+        video_path_formatter = (lambda root_path, video_id: root_path / f'{video_id}.pickle')
 
     if inference_subset == 'train':
         subset = 'training'
@@ -202,6 +206,16 @@ def get_inference_data(video_path,
                                      video_loader=loader,
                                      video_path_formatter=video_path_formatter,
                                      is_untrimmed_setting=True)
+    elif dataset_name == 'HCM':
+        inference_data = HeartDataset(video_path,
+                                        annotation_path,
+                                        subset,
+                                        spatial_transform=spatial_transform,
+                                        temporal_transform=temporal_transform,
+                                        target_transform=target_transform,
+                                        hv_loader=loader,
+                                        hv_path_formatter=video_path_formatter)
+        collate_fn = None
     else:
         inference_data = VideoDatasetMultiClips(
             video_path,

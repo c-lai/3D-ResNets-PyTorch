@@ -25,7 +25,7 @@ def convert_ehr_csv_to_dict(csv_dir_path, hv_dir_path, split_index):
                     label = data.loc[data["MRI_ID"]==mri_id]["Adverse_Outcome"].values[0]
         
                     if subset_index == 0:
-                        continue
+                        subset = 'test'
                     elif subset_index == 1:
                         subset = 'training'
                     elif subset_index == 2:

@@ -140,7 +140,7 @@ def parse_opts():
     parser.add_argument('--lr_scheduler',
                         default='multistep',
                         type=str,
-                        help='Type of LR scheduler (multistep | plateau)')
+                        help='Type of LR scheduler (multistep | plateau | cosine)')
     parser.add_argument(
         '--multistep_milestones',
         default=[50, 100, 150],
@@ -157,6 +157,18 @@ def parse_opts():
         default=10,
         type=int,
         help='Patience of LR scheduler. See documentation of ReduceLROnPlateau.'
+    )
+    parser.add_argument(
+        '--T_0',
+        default=40,
+        type=int,
+        help='Number of iterations for the first restart of LR scheduler. See documentation of CosineAnnealingWarmRestarts.'
+    )
+    parser.add_argument(
+        '--T_multi',
+        default=1,
+        type=int,
+        help='Increase factor for T of LR scheduler. See documentation of CosineAnnealingWarmRestarts.'
     )
     parser.add_argument('--batch_size',
                         default=128,
@@ -190,11 +202,14 @@ def parse_opts():
     parser.add_argument('--no_val',
                         action='store_true',
                         help='If true, validation is not performed.')
+    parser.add_argument('--test',
+                        action='store_true',
+                        help='If true, test is performed.')
     parser.add_argument('--inference',
                         action='store_true',
                         help='If true, inference is performed.')
     parser.add_argument('--inference_subset',
-                        default='val',
+                        default='test',
                         type=str,
                         help='Used subset in inference (train | val | test)')
     parser.add_argument('--inference_stride',
